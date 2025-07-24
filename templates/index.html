@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ForecastFutureBuy - Product Sales Prediction</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #ecfdf5 100%);
+      min-height: 100vh;
+      padding: 2rem;
+      color: #1f2937;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      opacity: 0;
+      transform: translateY(30px);
+      animation: fadeInUp 1s ease-out forwards;
+    }
+    @keyframes fadeInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      padding: 2rem;
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.1);
+    }
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 0.5rem;
+    }
+    .header p {
+      color: #6b7280;
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+    .form-section {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 40px rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.1);
+      transform: translateY(20px);
+      opacity: 0;
+      animation: slideInUp 0.8s ease-out 0.3s forwards;
+    }
+    @keyframes slideInUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .form-container {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 2rem;
+      align-items: end;
+    }
+    @media (max-width: 768px) {
+      .form-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .input-group label {
+      font-weight: 600;
+      color: #374151;
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .input-group select {
+      padding: 1.2rem 1.5rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 15px;
+      font-size: 1rem;
+      background: white;
+      color: #374151;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      outline: none;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+      background-position: right 1rem center;
+      background-repeat: no-repeat;
+      background-size: 1.5em 1.5em;
+      padding-right: 3rem;
+    }
+    .input-group select:hover {
+      border-color: #22c55e;
+      box-shadow: 0 5px 20px rgba(34, 197, 94, 0.1);
+      transform: translateY(-2px);
+    }
+    .input-group select:focus {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+      transform: translateY(-2px);
+    }
+    .predict-btn {
+      padding: 1.2rem 2.5rem;
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+      color: white;
+      border: none;
+      border-radius: 15px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      min-width: 160px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .predict-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+      transition: left 0.6s;
+    }
+    .predict-btn:hover::before {
+      left: 100%;
+    }
+    .predict-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 15px 35px rgba(34, 197, 94, 0.4);
+    }
+    .predict-btn:active {
+      transform: translateY(-1px);
+    }
+    .predict-btn:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 3rem;
+      color: #22c55e;
+    }
+    .loading.show {
+      display: block;
+    }
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #e5e7eb;
+      border-top: 4px solid #22c55e;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .loading p {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+    .results-section {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2.5rem;
+      box-shadow: 0 10px 40px rgba(34, 197, 94, 0.08);
+      border: 1px solid rgba(34, 197, 94, 0.1);
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      margin-bottom: 2rem;
+      display: none;
+    }
+    .results-section.show {
+      opacity: 1;
+      transform: translateY(0);
+      display: block;
+    }
+    .chart-container {
+      margin-bottom: 2rem;
+    }
+    .chart-container h3 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      color: #374151;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+    .chart-wrapper {
+      position: relative;
+      height: 400px;
+      margin-bottom: 2rem;
+    }
+    .recommendation-box {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 2px solid #22c55e;
+      border-radius: 15px;
+      padding: 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: slideInRecommendation 0.6s ease-out 0.3s forwards;
+    }
+    @keyframes slideInRecommendation {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .recommendation-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #22c55e, #16a34a, #22c55e);
+      background-size: 200% 100%;
+      animation: shimmer 2s linear infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .recommendation-box h4 {
+      color: #16a34a;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .recommendation-box .model-name {
+      color: #374151;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .recommendation-box .message {
+      color: #6b7280;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    .error-message {
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      color: #dc2626;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+      border: 1px solid #fecaca;
+      display: none;
+      text-align: center;
+    }
+    .success-message {
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      color: #16a34a;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+      border: 1px solid #bbf7d0;
+      display: none;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>ForecastFutureBuy</h1>
+      <p>Product Sales Prediction System</p>
+    </div>
+
+    <div class="form-section">
+      <div class="form-container">
+        <div class="input-group">
+          <label for="brand">Brand</label>
+          <select id="brand" required>
+            <option value="">Select Brand</option>
+            {% for brand in brands %}
+              <option value="{{ brand }}">{{ brand }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label for="product">Product</label>
+          <select id="product" required>
+            <option value="">Select Product</option>
+            {% for product in products %}
+              <option value="{{ product }}">{{ product }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label for="start-date">Start Date</label>
+          <input type="month" id="start-date" required>
+        </div>
+
+        <div class="input-group">
+          <label for="end-date">End Date</label>
+          <input type="month" id="end-date" required>
+        </div>
+
+        <button class="predict-btn" id="predict-btn">Predict</button>
+      </div>
+
+      <div class="error-message" id="error-message" role="alert"></div>
+      <div class="success-message" id="success-message" role="status"></div>
+    </div>
+
+    <div class="loading" id="loading" style="display:none;">
+      <div class="spinner" aria-hidden="true"></div>
+      <p>Analyzing market trends and generating predictions...</p>
+    </div>
+
+    <div class="results-section" id="results-section" style="display:none;">
+      <div class="chart-container">
+        <h3>Sales Forecast Analysis</h3>
+        <div class="chart-wrapper">
+          <canvas id="salesChart" width="1000" height="400"></canvas>
+        </div>
+      </div>
+
+      <div class="recommendation-box" id="recommendation-box">
+        <h4>Product Hype Forecast</h4>
+        <div class="message" id="recommendation-message"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let salesChart = null;
+
+    function showMessage(message, type = 'error') {
+      const errorEl = document.getElementById('error-message');
+      const successEl = document.getElementById('success-message');
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+      clearTimeout(showMessage.timeoutId);
+      if (type === 'error') {
+        errorEl.textContent = message;
+        errorEl.style.display = 'block';
+      } else {
+        successEl.textContent = message;
+        successEl.style.display = 'block';
+      }
+      showMessage.timeoutId = setTimeout(() => {
+        errorEl.style.display = 'none';
+        successEl.style.display = 'none';
+      }, 5000);
+    }
+
+function createChart(data) {
+  const forecastLength = data.forecast.values.length;
+
+  const ctx = document.getElementById('salesChart').getContext('2d');
+  if (salesChart) salesChart.destroy();
+  salesChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [...data.history.labels, ...data.forecast.labels],
+      datasets: [
+        {
+          label: 'Historical Sales',
+          data: data.history.values.concat(Array(forecastLength).fill(null)),
+          borderColor: '#22c55e',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)',
+          borderWidth: 3,
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Forecast',
+          data: Array(data.history.values.length).fill(null).concat(data.forecast.values),
+          borderColor: '#8b5cf6',
+          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.4
+        },
+        {
+          label: 'High Forecast',
+          data: Array(data.history.values.length).fill(null).concat(data.forecast.highs),
+          borderColor: '#059669',
+          borderDash: [5, 5],
+          fill: false
+        },
+        {
+          label: 'Low Forecast',
+          data: Array(data.history.values.length).fill(null).concat(data.forecast.lows),
+          borderColor: '#65a30d',
+          borderDash: [5, 5],
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        y: { beginAtZero: true }
+      },
+      animation: { duration: 2000 }
+    }
+  });
+}
+
+    async function handlePredict() {
+      const brand = document.getElementById('brand').value;
+      const product = document.getElementById('product').value;
+      const start = document.getElementById('start-date').value;
+      const end = document.getElementById('end-date').value;
+      const predictBtn = document.getElementById('predict-btn');
+      const loading = document.getElementById('loading');
+      const resultsSection = document.getElementById('results-section');
+
+      if (!brand || !product || !start || !end) {
+        showMessage('Please select brand, product, and both dates.', 'error');
+        return;
+      }
+
+      predictBtn.disabled = true;
+      loading.style.display = 'block';
+      resultsSection.style.display = 'none';
+
+      try {
+        const response = await fetch('/api/forecast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            brand, product,
+            start_date: start + "-01",
+            end_date: end + "-01"
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          showMessage(data.error || 'Something went wrong.', 'error');
+          throw new Error(data.error || 'Request failed');
+        }
+
+        createChart(data);
+        document.getElementById('recommendation-message').textContent = data.recommendation.message;
+        resultsSection.style.display = 'block';
+        showMessage('Prediction successful!', 'success');
+      } catch (error) {
+        console.error(error);
+      } finally {
+        predictBtn.disabled = false;
+        loading.style.display = 'none';
+      }
+    }
+
+    document.getElementById('predict-btn').addEventListener('click', handlePredict);
+  </script>
+</body>
+</html>
