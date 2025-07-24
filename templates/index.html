@@ -292,69 +292,53 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>ForecastFutureBuy</h1>
-      <p>Product Sales Prediction System</p>
-    </div>
+  <h1>ForecastFutureBuy</h1>
+  <p>Product Sales Prediction System</p>
 
-    <div class="form-section">
-      <div class="form-container">
-        <div class="input-group">
-          <label for="brand">Brand</label>
-          <select id="brand" required>
-            <option value="">Select Brand</option>
-            {% for brand in brands %}
-              <option value="{{ brand }}">{{ brand }}</option>
-            {% endfor %}
-          </select>
-        </div>
+  <div>
+    <label for="brand">Brand:</label>
+    <select id="brand" required>
+      <option value="">Select Brand</option>
+      {% for brand in brands %}
+        <option value="{{ brand }}">{{ brand }}</option>
+      {% endfor %}
+    </select>
+  </div>
 
-        <div class="input-group">
-          <label for="product">Product</label>
-          <select id="product" required>
-            <option value="">Select Product</option>
-            {% for product in products %}
-              <option value="{{ product }}">{{ product }}</option>
-            {% endfor %}
-          </select>
-        </div>
+  <div>
+    <label for="product">Product:</label>
+    <select id="product" required>
+      <option value="">Select Product</option>
+      {% for product in products %}
+        <option value="{{ product }}">{{ product }}</option>
+      {% endfor %}
+    </select>
+  </div>
 
-        <div class="input-group">
-          <label for="start-date">Start Date</label>
-          <input type="month" id="start-date" required>
-        </div>
+  <div>
+    <label for="start-date">Start Date:</label>
+    <input type="month" id="start-date" required>
+  </div>
 
-        <div class="input-group">
-          <label for="end-date">End Date</label>
-          <input type="month" id="end-date" required>
-        </div>
+  <div>
+    <label for="end-date">End Date:</label>
+    <input type="month" id="end-date" required>
+  </div>
 
-        <button class="predict-btn" id="predict-btn">Predict</button>
-      </div>
+  <button id="predict-btn">Predict</button>
 
-      <div class="error-message" id="error-message" role="alert"></div>
-      <div class="success-message" id="success-message" role="status"></div>
-    </div>
+  <div id="error-message" style="color: red; display:none;"></div>
+  <div id="success-message" style="color: green; display:none;"></div>
 
-    <div class="loading" id="loading" style="display:none;">
-      <div class="spinner" aria-hidden="true"></div>
-      <p>Analyzing market trends and generating predictions...</p>
-    </div>
+  <div id="loading" style="display:none;">
+    <p>Analyzing market trends and generating predictions...</p>
+  </div>
 
-    <div class="results-section" id="results-section" style="display:none;">
-      <div class="chart-container">
-        <h3>Sales Forecast Analysis</h3>
-        <div class="chart-wrapper">
-          <canvas id="salesChart" width="1000" height="400"></canvas>
-        </div>
-      </div>
-
-      <div class="recommendation-box" id="recommendation-box">
-        <h4>Product Hype Forecast</h4>
-        <div class="message" id="recommendation-message"></div>
-      </div>
-    </div>
+  <div id="results-section" style="display:none;">
+    <h3>Sales Forecast Analysis</h3>
+    <canvas id="salesChart" width="1000" height="400"></canvas>
+    <h4>Product Forecast:</h4>
+    <div id="recommendation-message"></div>
   </div>
 
   <script>
@@ -365,7 +349,6 @@
       const successEl = document.getElementById('success-message');
       errorEl.style.display = 'none';
       successEl.style.display = 'none';
-      clearTimeout(showMessage.timeoutId);
       if (type === 'error') {
         errorEl.textContent = message;
         errorEl.style.display = 'block';
@@ -373,70 +356,56 @@
         successEl.textContent = message;
         successEl.style.display = 'block';
       }
-      showMessage.timeoutId = setTimeout(() => {
-        errorEl.style.display = 'none';
-        successEl.style.display = 'none';
-      }, 5000);
     }
 
-function createChart(data) {
-  const forecastLength = data.forecast.values.length;
-
-  const ctx = document.getElementById('salesChart').getContext('2d');
-  if (salesChart) salesChart.destroy();
-  salesChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [...data.history.labels, ...data.forecast.labels],
-      datasets: [
-        {
-          label: 'Historical Sales',
-          data: data.history.values.concat(Array(forecastLength).fill(null)),
-          borderColor: '#22c55e',
-          backgroundColor: 'rgba(34, 197, 94, 0.1)',
-          borderWidth: 3,
-          fill: true,
-          tension: 0.4
+    function createChart(data) {
+      const forecastLength = data.forecast.values.length;
+      const ctx = document.getElementById('salesChart').getContext('2d');
+      if (salesChart) salesChart.destroy();
+      salesChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [...data.history.labels, ...data.forecast.labels],
+          datasets: [
+            {
+              label: 'Historical Sales',
+              data: data.history.values.concat(Array(forecastLength).fill(null)),
+              borderColor: 'blue',
+              backgroundColor: 'rgba(0, 0, 255, 0.1)',
+              borderWidth: 2,
+              fill: true
+            },
+            {
+              label: 'Forecast',
+              data: Array(data.history.values.length).fill(null).concat(data.forecast.values),
+              borderColor: 'green',
+              backgroundColor: 'rgba(0, 255, 0, 0.1)',
+              borderWidth: 2,
+              fill: false
+            },
+            {
+              label: 'High Forecast',
+              data: Array(data.history.values.length).fill(null).concat(data.forecast.highs),
+              borderColor: 'red',
+              borderDash: [5, 5],
+              fill: false
+            },
+            {
+              label: 'Low Forecast',
+              data: Array(data.history.values.length).fill(null).concat(data.forecast.lows),
+              borderColor: 'orange',
+              borderDash: [5, 5],
+              fill: false
+            }
+          ]
         },
-        {
-          label: 'Forecast',
-          data: Array(data.history.values.length).fill(null).concat(data.forecast.values),
-          borderColor: '#8b5cf6',
-          backgroundColor: 'rgba(139, 92, 246, 0.1)',
-          borderWidth: 3,
-          fill: false,
-          tension: 0.4
-        },
-        {
-          label: 'High Forecast',
-          data: Array(data.history.values.length).fill(null).concat(data.forecast.highs),
-          borderColor: '#059669',
-          borderDash: [5, 5],
-          fill: false
-        },
-        {
-          label: 'Low Forecast',
-          data: Array(data.history.values.length).fill(null).concat(data.forecast.lows),
-          borderColor: '#65a30d',
-          borderDash: [5, 5],
-          fill: false
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'top' } },
+          scales: { y: { beginAtZero: true } }
         }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { position: 'top' },
-        tooltip: { mode: 'index', intersect: false }
-      },
-      scales: {
-        y: { beginAtZero: true }
-      },
-      animation: { duration: 2000 }
+      });
     }
-  });
-}
 
     async function handlePredict() {
       const brand = document.getElementById('brand').value;
@@ -468,9 +437,11 @@ function createChart(data) {
         });
 
         const data = await response.json();
+        console.log('API Response:', data);
+
         if (!response.ok) {
           showMessage(data.error || 'Something went wrong.', 'error');
-          throw new Error(data.error || 'Request failed');
+          return;
         }
 
         createChart(data);
@@ -479,6 +450,7 @@ function createChart(data) {
         showMessage('Prediction successful!', 'success');
       } catch (error) {
         console.error(error);
+        showMessage('An error occurred while fetching data.', 'error');
       } finally {
         predictBtn.disabled = false;
         loading.style.display = 'none';
