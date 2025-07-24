@@ -8,18 +8,34 @@ warnings.filterwarnings("ignore")
 
 app = Flask(__name__)
 
-# Load your enriched dataset once at startup
-df = pd.read_csv('enriched_product_sales_2010_2025.csv')
+# Load your dataset once at startup
+df = pd.read_csv('mock_product_sales_realistic.csv')
 df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-# Unique brand and product options
-brands = sorted(df['Brand'].dropna().unique())
-products = sorted(df['Product_Name'].dropna().unique())
+# Get min/max dates for global range restriction
+min_dt = df['timestamp'].min().strftime('%Y-%m')
+max_dt = df['timestamp'].max().strftime('%Y-%m')
 
-# Homepage with dropdowns
+# Map brands to products
+brand_product_map = df.groupby('Brand')['Product_Name'].unique().apply(lambda x: sorted(list(x))).to_dict()
+brands = sorted(brand_product_map.keys())
+
 @app.route('/')
 def index():
-    return render_template('index.html', brands=brands, products=products)
+    initial_brand = brands[0] if brands else None
+    initial_products = brand_product_map.get(initial_brand, [])
+    # Pass min_date and max_date to the template
+    return render_template('index.html', 
+                          brands=brands, 
+                          products=initial_products,
+                          min_date=min_dt,
+                          max_date=max_dt
+    )
+
+@app.route('/api/products/<brand>')
+def get_products(brand):
+    products = brand_product_map.get(brand, [])
+    return jsonify(products)
 
 @app.route('/api/forecast', methods=['POST'])
 def forecast():
@@ -30,7 +46,7 @@ def forecast():
         start_date = pd.to_datetime(data.get('start_date'))
         end_date = pd.to_datetime(data.get('end_date'))
 
-        # Filter the data for selected brand/product and date range
+        # Filter data
         filtered_df = df[
             (df['Brand'] == brand) &
             (df['Product_Name'] == product) &
@@ -41,34 +57,39 @@ def forecast():
         if filtered_df.empty:
             return jsonify({'error': 'No data found for the selected criteria.'}), 400
 
-        # Aggregate monthly sales
+        # Monthly sales
         monthly_sales = filtered_df.resample('MS', on='timestamp')['Quantity_Sold'].sum().reset_index()
-
-        # Fill missing months with 0 sales for continuity
         monthly_sales.set_index('timestamp', inplace=True)
         monthly_sales = monthly_sales.asfreq('MS', fill_value=0)
         monthly_sales.reset_index(inplace=True)
 
-        if len(monthly_sales) < 24:
-            return jsonify({'error': 'Not enough data for forecasting. Minimum 24 months required.'}), 400
+        if len(monthly_sales) < 2:
+            return jsonify({'error': 'Not enough data for forecasting. Minimum 2 months required.'}), 400
 
-        # Build and fit the Holt-Winters seasonal additive model
-        model = ExponentialSmoothing(
-            monthly_sales['Quantity_Sold'],
-            trend='add',
-            seasonal='add',
-            seasonal_periods=12
-        )
+        if len(monthly_sales) >= 24:
+            model = ExponentialSmoothing(
+                monthly_sales['Quantity_Sold'],
+                trend='add',
+                seasonal='add',
+                seasonal_periods=12
+            )
+            model_name = "Holt-Winters Seasonal Model"
+        else:
+            model = ExponentialSmoothing(
+                monthly_sales['Quantity_Sold'],
+                trend='add',
+                seasonal=None
+            )
+            model_name = "Holt's Linear Trend Model"
+
         model_fit = model.fit()
-
         forecast_steps = 6
         forecast = model_fit.forecast(forecast_steps)
+        forecast[forecast < 0] = 0
 
-        # Prepare forecast dates
         last_date = monthly_sales['timestamp'].iloc[-1]
         forecast_dates = pd.date_range(last_date + pd.offsets.MonthBegin(1), periods=forecast_steps, freq='MS')
 
-        # Prepare response data
         response = {
             'history': {
                 'labels': monthly_sales['timestamp'].dt.strftime('%Y-%m').tolist(),
@@ -81,7 +102,8 @@ def forecast():
                 'lows': (forecast * 0.85).round().astype(int).tolist()
             },
             'recommendation': {
-                'message': f"{product} by {brand} is projected to sell {forecast.sum():.0f} units in the next 6 months."
+                'message': f"{product} by {brand} is projected to sell {forecast.sum():.0f} units in the next 6 months.",
+                'model_used': model_name
             }
         }
 
@@ -89,7 +111,6 @@ def forecast():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True)
