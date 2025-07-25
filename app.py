@@ -1,35 +1,63 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import numpy as np
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
 import warnings
+import os
+
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from pymongo import MongoClient
+from dotenv import load_dotenv
 
 warnings.filterwarnings("ignore")
 
+# Load environment variables from .env
+load_dotenv()
+MONGODB_URI = os.environ.get("MONGODB_URI")
+DB_NAME = os.environ.get("DB_NAME")
+COLLECTION_NAME = os.environ.get("COLLECTION_NAME")
+
 app = Flask(__name__)
 
-# Load your dataset once at startup
-df = pd.read_csv('mock_product_sales_realistic.csv')
-df['timestamp'] = pd.to_datetime(df['timestamp'])
+# Connect to MongoDB
+client = MongoClient(MONGODB_URI)
+db = client[DB_NAME]
+collection = db[COLLECTION_NAME]
 
-# Get min/max dates for global range restriction
-min_dt = df['timestamp'].min().strftime('%Y-%m')
-max_dt = df['timestamp'].max().strftime('%Y-%m')
+def load_sales_data():
+    records = list(collection.find({}))
+    if not records:
+        # Return empty DataFrame with expected columns if collection is empty
+        return pd.DataFrame(columns=['Brand', 'Product_Name', 'timestamp', 'Quantity_Sold'])
+    df = pd.DataFrame(records)
+    if 'timestamp' in df.columns:
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+    return df
 
-# Map brands to products
-brand_product_map = df.groupby('Brand')['Product_Name'].unique().apply(lambda x: sorted(list(x))).to_dict()
-brands = sorted(brand_product_map.keys())
+# Initialize data at startup
+df = load_sales_data()
+
+# Derive min/max date if data exists
+if not df.empty:
+    min_dt = df['timestamp'].min().strftime('%Y-%m')
+    max_dt = df['timestamp'].max().strftime('%Y-%m')
+    brand_product_map = df.groupby('Brand')['Product_Name'].unique().apply(lambda x: sorted(list(x))).to_dict()
+    brands = sorted(brand_product_map.keys())
+else:
+    min_dt = None
+    max_dt = None
+    brand_product_map = {}
+    brands = []
 
 @app.route('/')
 def index():
     initial_brand = brands[0] if brands else None
     initial_products = brand_product_map.get(initial_brand, [])
-    # Pass min_date and max_date to the template
-    return render_template('index.html', 
-                          brands=brands, 
-                          products=initial_products,
-                          min_date=min_dt,
-                          max_date=max_dt
+    return render_template(
+        'index.html',
+        brands=brands,
+        products=initial_products,
+        min_date=min_dt,
+        max_date=max_dt
     )
 
 @app.route('/api/products/<brand>')
@@ -39,14 +67,18 @@ def get_products(brand):
 
 @app.route('/api/forecast', methods=['POST'])
 def forecast():
+    global df  # So we can refresh data if needed
+
     try:
+        # Force reload for fresh DB changes (remove if not needed)
+        df = load_sales_data()
+
         data = request.get_json()
         brand = data.get('brand')
         product = data.get('product')
         start_date = pd.to_datetime(data.get('start_date'))
         end_date = pd.to_datetime(data.get('end_date'))
 
-        # Filter data
         filtered_df = df[
             (df['Brand'] == brand) &
             (df['Product_Name'] == product) &
@@ -55,9 +87,8 @@ def forecast():
         ].copy()
 
         if filtered_df.empty:
-            return jsonify({'error': 'No data found for the selected criteria.'}), 400
+            return jsonify({'error': 'No data found for the selected criteria. Please add data in your MongoDB cluster.'}), 400
 
-        # Monthly sales
         monthly_sales = filtered_df.resample('MS', on='timestamp')['Quantity_Sold'].sum().reset_index()
         monthly_sales.set_index('timestamp', inplace=True)
         monthly_sales = monthly_sales.asfreq('MS', fill_value=0)
@@ -106,9 +137,7 @@ def forecast():
                 'model_used': model_name
             }
         }
-
         return jsonify(response)
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
