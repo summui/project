@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import numpy as np
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
+from statsmodels.tsa.arima.model import ARIMA
+from prophet import Prophet
+from sklearn.metrics import mean_squared_error
 import warnings
 import os
-
-from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -26,8 +28,8 @@ collection = db[COLLECTION_NAME]
 def load_sales_data():
     records = list(collection.find({}))
     if not records:
-        # Return empty DataFrame with expected columns if collection is empty
-        return pd.DataFrame(columns=['Brand', 'Product_Name', 'timestamp', 'Quantity_Sold'])
+        # Empty DataFrame with expected columns
+        return pd.DataFrame(columns=['Brand', 'Product_Name', 'Model', 'timestamp', 'Quantity_Sold'])
     df = pd.DataFrame(records)
     if 'timestamp' in df.columns:
         df['timestamp'] = pd.to_datetime(df['timestamp'])
@@ -36,52 +38,132 @@ def load_sales_data():
 # Initialize data at startup
 df = load_sales_data()
 
-# Derive min/max date if data exists
+# Derive min/max dates if data exists
 if not df.empty:
     min_dt = df['timestamp'].min().strftime('%Y-%m')
     max_dt = df['timestamp'].max().strftime('%Y-%m')
-    brand_product_map = df.groupby('Brand')['Product_Name'].unique().apply(lambda x: sorted(list(x))).to_dict()
-    brands = sorted(brand_product_map.keys())
+    brands = sorted(df['Brand'].unique())
 else:
     min_dt = None
     max_dt = None
-    brand_product_map = {}
     brands = []
+
+# --- Utility: Model Selection & Forecasting ---
+
+def holt_winters_forecast(monthly_sales, steps):
+    if len(monthly_sales) >= 24:
+        model = ExponentialSmoothing(
+            monthly_sales['Quantity_Sold'],
+            trend='add', seasonal='add', seasonal_periods=12)
+        fit = model.fit()
+        model_repr = "Holt-Winters Seasonal Model"
+    else:
+        model = ExponentialSmoothing(monthly_sales['Quantity_Sold'],
+                                     trend='add', seasonal=None)
+        fit = model.fit()
+        model_repr = "Holt's Linear Trend Model"
+    pred = fit.forecast(steps)
+    pred[pred < 0] = 0
+    return pred, model_repr, fit
+
+def arima_forecast(monthly_sales, steps):
+    order = (1, 1, 1) if len(monthly_sales) < 3 else (2, 1, 2)
+    model = ARIMA(monthly_sales['Quantity_Sold'], order=order)
+    fit = model.fit()
+    pred = fit.forecast(steps)
+    pred[pred < 0] = 0
+    return pred, "ARIMA", fit
+
+def prophet_forecast(monthly_sales, steps):
+    data = monthly_sales.rename(columns={'timestamp': 'ds', 'Quantity_Sold': 'y'})
+    m = Prophet(daily_seasonality=False, yearly_seasonality=True, weekly_seasonality=False)
+    m.fit(data)
+    future = m.make_future_dataframe(periods=steps, freq='MS')
+    forecast = m.predict(future)
+    yhat = forecast.iloc[-steps:]['yhat']
+    yhat = yhat.apply(lambda x: max(0, x))
+    upper = forecast.iloc[-steps:]['yhat_upper']
+    lower = forecast.iloc[-steps:]['yhat_lower']
+    return yhat, "Prophet", (upper, lower)
+
+def select_best_model(monthly_sales, steps=6):
+    y = monthly_sales['Quantity_Sold'].values
+    train = monthly_sales.iloc[:-steps] if len(monthly_sales) > steps else monthly_sales
+    test = monthly_sales.iloc[-steps:] if len(monthly_sales) > steps else monthly_sales
+    candidates = []
+
+    try:
+        yhat, name, conf = prophet_forecast(train, steps)
+        rmse = mean_squared_error(test['Quantity_Sold'][:len(yhat)], yhat[:len(test)]) ** 0.5
+        candidates.append((rmse, name, yhat, conf))
+    except Exception:
+        pass
+
+    try:
+        yhat, name, fit = holt_winters_forecast(train, steps)
+        rmse = mean_squared_error(test['Quantity_Sold'][:len(yhat)], yhat[:len(test)]) ** 0.5
+        candidates.append((rmse, name, yhat, (yhat*1.15, yhat*0.85)))
+    except Exception:
+        pass
+
+    try:
+        yhat, name, fit = arima_forecast(train, steps)
+        rmse = mean_squared_error(test['Quantity_Sold'][:len(yhat)], yhat[:len(test)]) ** 0.5
+        candidates.append((rmse, name, yhat, (yhat*1.15, yhat*0.85)))
+    except Exception:
+        pass
+
+    if not candidates:
+        yhat, name, fit = holt_winters_forecast(monthly_sales, steps)
+        return yhat, name, (yhat*1.15, yhat*0.85)
+
+    candidates.sort(key=lambda x: x[0])
+    yhat, chosen_name, conf = candidates[0][2], candidates[0][1], candidates[0][3]
+    return yhat, chosen_name, conf
+
+# --- Flask Endpoints ---
 
 @app.route('/')
 def index():
-    initial_brand = brands[0] if brands else None
-    initial_products = brand_product_map.get(initial_brand, [])
     return render_template(
         'index.html',
         brands=brands,
-        products=initial_products,
         min_date=min_dt,
         max_date=max_dt
     )
 
 @app.route('/api/products/<brand>')
-def get_products(brand):
-    products = brand_product_map.get(brand, [])
-    return jsonify(products)
+def get_products_for_brand(brand):
+    if df.empty:
+        return jsonify([])
+    products = df[df['Brand'] == brand]['Product_Name'].unique().tolist()
+    return jsonify(sorted(products))
+
+@app.route('/api/models/<brand>/<product>')
+def get_models_for_product(brand, product):
+    if df.empty:
+        return jsonify([])
+    models = df[(df['Brand'] == brand) & (df['Product_Name'] == product)]['Model'].unique().tolist()
+    return jsonify(sorted(models))
 
 @app.route('/api/forecast', methods=['POST'])
-def forecast():
-    global df  # So we can refresh data if needed
-
+def forecast_api():
+    global df
     try:
-        # Force reload for fresh DB changes (remove if not needed)
+        # Refresh data for latest DB changes
         df = load_sales_data()
 
         data = request.get_json()
         brand = data.get('brand')
         product = data.get('product')
+        model = data.get('model')
         start_date = pd.to_datetime(data.get('start_date'))
         end_date = pd.to_datetime(data.get('end_date'))
 
         filtered_df = df[
             (df['Brand'] == brand) &
             (df['Product_Name'] == product) &
+            (df['Model'] == model) &
             (df['timestamp'] >= start_date) &
             (df['timestamp'] <= end_date)
         ].copy()
@@ -97,29 +179,19 @@ def forecast():
         if len(monthly_sales) < 2:
             return jsonify({'error': 'Not enough data for forecasting. Minimum 2 months required.'}), 400
 
-        if len(monthly_sales) >= 24:
-            model = ExponentialSmoothing(
-                monthly_sales['Quantity_Sold'],
-                trend='add',
-                seasonal='add',
-                seasonal_periods=12
-            )
-            model_name = "Holt-Winters Seasonal Model"
-        else:
-            model = ExponentialSmoothing(
-                monthly_sales['Quantity_Sold'],
-                trend='add',
-                seasonal=None
-            )
-            model_name = "Holt's Linear Trend Model"
-
-        model_fit = model.fit()
         forecast_steps = 6
-        forecast = model_fit.forecast(forecast_steps)
-        forecast[forecast < 0] = 0
+
+        try:
+            forecast, model_name, conf = select_best_model(monthly_sales, steps=forecast_steps)
+        except Exception:
+            forecast, model_name, conf = holt_winters_forecast(monthly_sales, forecast_steps)
+            conf = (forecast * 1.15, forecast * 0.85)
 
         last_date = monthly_sales['timestamp'].iloc[-1]
         forecast_dates = pd.date_range(last_date + pd.offsets.MonthBegin(1), periods=forecast_steps, freq='MS')
+
+        highs = np.round(conf[0]).astype(int).tolist()
+        lows = np.round(conf[1]).astype(int).tolist()
 
         response = {
             'history': {
@@ -128,18 +200,20 @@ def forecast():
             },
             'forecast': {
                 'labels': forecast_dates.strftime('%Y-%m').tolist(),
-                'values': forecast.round().astype(int).tolist(),
-                'highs': (forecast * 1.15).round().astype(int).tolist(),
-                'lows': (forecast * 0.85).round().astype(int).tolist()
+                'values': np.round(forecast).astype(int).tolist(),
+                'highs': highs,
+                'lows': lows
             },
             'recommendation': {
-                'message': f"{product} by {brand} is projected to sell {forecast.sum():.0f} units in the next 6 months.",
+                'message': f"{product} ({model}) by {brand} is projected to sell {np.round(forecast).sum():.0f} units in the next 6 months. Model used: {model_name}",
                 'model_used': model_name
             }
         }
         return jsonify(response)
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(debug=True)

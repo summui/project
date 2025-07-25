@@ -90,7 +90,7 @@
       transform: translateY(20px);
       animation: slideInUp 0.8s ease-out 0.3s forwards;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 1.5rem;
       align-items: end;
     }
@@ -269,7 +269,6 @@
       display: block !important;
     }
     
-    /* Updated Charts Layout - Vertical Stacking for Better Historical Data Display */
     .charts-grid {
       display: flex;
       flex-direction: column;
@@ -284,16 +283,6 @@
       box-shadow: 0 5px 15px rgba(124, 58, 237, 0.1);
       border: 1px solid rgba(124, 58, 237, 0.1);
       width: 100%;
-    }
-    
-    .chart-container.historical {
-      width: 100%;
-      /* Give more height for historical data that might have many data points */
-    }
-    
-    .chart-container.forecast {
-      width: 100%;
-      /* Forecast chart appears below historical chart */
     }
     
     .chart-container h3 {
@@ -311,11 +300,11 @@
     }
     
     .chart-wrapper.historical {
-      height: 450px; /* Slightly taller for historical data */
+      height: 450px;
     }
     
     .chart-wrapper.forecast {
-      height: 350px; /* Standard height for forecast */
+      height: 350px;
     }
     
     #historicalChart,
@@ -468,22 +457,9 @@
       }
     }
     
-    /* Large screens - keep vertical layout for better historical data visibility */
     @media (min-width: 1024px) {
-      .charts-grid {
-        flex-direction: column;
-      }
-      
-      .chart-container.historical {
-        width: 100%;
-      }
-      
-      .chart-container.forecast {
-        width: 100%;
-      }
-      
       .chart-wrapper.historical {
-        height: 500px; /* Even more height on large screens for historical data */
+        height: 500px;
       }
       
       .chart-wrapper.forecast {
@@ -521,6 +497,13 @@
         <label for="product">Product</label>
         <select id="product" required disabled>
           <option value="">Select a brand first</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="model">Model</label>
+        <select id="model" required disabled>
+          <option value="">Select a product first</option>
         </select>
       </div>
 
@@ -584,23 +567,30 @@
     console.log('Chart.js loaded:', typeof Chart);
     console.log('Available date range:', MIN_DATE, 'to', MAX_DATE);
 
-    // Cascading Dropdown Logic
+    // Cascading Dropdown Logic: Brand → Product → Model
     document.addEventListener('DOMContentLoaded', function () {
         const brandSelect = document.getElementById('brand');
         const productSelect = document.getElementById('product');
+        const modelSelect = document.getElementById('model');
         const startDateInput = document.getElementById('start-date');
         const endDateInput = document.getElementById('end-date');
 
         // Set default dates within valid range
         setDefaultDates();
 
-        // Initially disable product select
+        // Initially disable product and model selects
         productSelect.disabled = true;
+        modelSelect.disabled = true;
 
+        // Brand selection changes
         brandSelect.addEventListener('change', async function () {
             const selectedBrand = this.value;
+            
+            // Reset dependent dropdowns
             productSelect.innerHTML = '<option value="">Loading...</option>';
             productSelect.disabled = true;
+            modelSelect.innerHTML = '<option value="">Select a product first</option>';
+            modelSelect.disabled = true;
 
             if (!selectedBrand) {
                 productSelect.innerHTML = '<option value="">Select a brand first</option>';
@@ -627,6 +617,44 @@
             } catch (error) {
                 console.error('Error fetching products:', error);
                 productSelect.innerHTML = '<option value="">Error loading products</option>';
+                showMessage(error.message, 'error');
+            }
+        });
+
+        // Product selection changes
+        productSelect.addEventListener('change', async function () {
+            const selectedBrand = brandSelect.value;
+            const selectedProduct = this.value;
+            
+            // Reset model dropdown
+            modelSelect.innerHTML = '<option value="">Loading...</option>';
+            modelSelect.disabled = true;
+
+            if (!selectedBrand || !selectedProduct) {
+                modelSelect.innerHTML = '<option value="">Select brand and product first</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/models/${encodeURIComponent(selectedBrand)}/${encodeURIComponent(selectedProduct)}`);
+                if (!response.ok) {
+                    throw new Error('Failed to load models from server.');
+                }
+                const models = await response.json();
+
+                modelSelect.innerHTML = '';
+                if (models && models.length > 0) {
+                    modelSelect.add(new Option('Select Model', ''));
+                    models.forEach(model => {
+                        modelSelect.add(new Option(model, model));
+                    });
+                    modelSelect.disabled = false;
+                } else {
+                    modelSelect.innerHTML = '<option value="">No models found</option>';
+                }
+            } catch (error) {
+                console.error('Error fetching models:', error);
+                modelSelect.innerHTML = '<option value="">Error loading models</option>';
                 showMessage(error.message, 'error');
             }
         });
@@ -853,14 +881,15 @@
     async function handlePredict() {
       const brand = document.getElementById('brand').value;
       const product = document.getElementById('product').value;
+      const model = document.getElementById('model').value;
       const start = document.getElementById('start-date').value;
       const end = document.getElementById('end-date').value;
       const predictBtn = document.getElementById('predict-btn');
       const loading = document.getElementById('loading');
       const resultsSection = document.getElementById('results-section');
 
-      if (!brand || !product || !start || !end) {
-        showMessage('Please select brand, product, and both dates.', 'error');
+      if (!brand || !product || !model || !start || !end) {
+        showMessage('Please select brand, product, model, and both dates.', 'error');
         return;
       }
 
@@ -885,6 +914,7 @@
           body: JSON.stringify({
             brand: brand,
             product: product,
+            model: model,
             start_date: start + "-01",
             end_date: end + "-01"
           })
@@ -928,7 +958,7 @@
     document.getElementById('predict-btn').addEventListener('click', handlePredict);
 
     // Form validation on input change
-    ['brand', 'product', 'start-date', 'end-date'].forEach(id => {
+    ['brand', 'product', 'model', 'start-date', 'end-date'].forEach(id => {
       const element = document.getElementById(id);
       if (element) {
         element.addEventListener('change', () => {
