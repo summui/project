@@ -1,12 +1,13 @@
 from flask import Flask, render_template, request, jsonify
 import pandas as pd
 import numpy as np
+import warnings
+import os
+
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.arima.model import ARIMA
 from prophet import Prophet
 from sklearn.metrics import mean_squared_error
-import warnings
-import os
 from pymongo import MongoClient
 from dotenv import load_dotenv
 
@@ -48,7 +49,7 @@ else:
     max_dt = None
     brands = []
 
-# --- Utility: Model Selection & Forecasting ---
+# --- Advanced Time Series Forecast Utilities ---
 
 def holt_winters_forecast(monthly_sales, steps):
     if len(monthly_sales) >= 24:
@@ -98,14 +99,12 @@ def select_best_model(monthly_sales, steps=6):
         candidates.append((rmse, name, yhat, conf))
     except Exception:
         pass
-
     try:
         yhat, name, fit = holt_winters_forecast(train, steps)
         rmse = mean_squared_error(test['Quantity_Sold'][:len(yhat)], yhat[:len(test)]) ** 0.5
         candidates.append((rmse, name, yhat, (yhat*1.15, yhat*0.85)))
     except Exception:
         pass
-
     try:
         yhat, name, fit = arima_forecast(train, steps)
         rmse = mean_squared_error(test['Quantity_Sold'][:len(yhat)], yhat[:len(test)]) ** 0.5
@@ -150,7 +149,7 @@ def get_models_for_product(brand, product):
 def forecast_api():
     global df
     try:
-        # Refresh data for latest DB changes
+        # Optional: reload latest data from DB for every prediction (remove if not needed)
         df = load_sales_data()
 
         data = request.get_json()
@@ -210,10 +209,8 @@ def forecast_api():
             }
         }
         return jsonify(response)
-
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 if __name__ == '__main__':
     app.run(debug=True)
