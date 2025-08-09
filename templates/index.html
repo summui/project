@@ -1,974 +1,509 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ForecastFutureBuy - Product Sales Prediction</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ForecastFutureBuy - Sales Prediction</title>
+
+  <!-- Chart.js core -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <!-- Zoom/pan plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.2.0/dist/chartjs-plugin-zoom.min.js"></script>
+  <!-- Matrix (heatmap) plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.1/dist/chartjs-chart-matrix.min.js"></script>
+
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: linear-gradient(135deg, #ede9fe 0%, #c4b5fd 50%, #ddd6fe 100%);
-      min-height: 100vh;
-      padding: 2rem;
-      color: #4c1d95;
-    }
-    
-    .container {
-      max-width: 1200px;
-      width: 100%;
-      margin: 0 auto;
-      opacity: 0;
-      transform: translateY(30px);
-      animation: fadeInUp 1s ease-out forwards;
-    }
-    
-    @keyframes fadeInUp {
-      to { 
-        opacity: 1; 
-        transform: translateY(0); 
-      }
-    }
-    
-    .header {
-      text-align: center;
-      margin-bottom: 2rem;
-      padding: 2rem;
-      background: rgba(238, 210, 255, 0.9);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(124, 58, 237, 0.1);
-      border: 1px solid rgba(124, 58, 237, 0.2);
-    }
-    
-    .header h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 0.5rem;
-    }
-    
-    .header p {
-      color: #7e22ce;
-      font-size: 1.1rem;
-      font-weight: 500;
-    }
-    
-    .date-info {
-      background: rgba(124, 58, 237, 0.1);
-      border: 1px solid rgba(124, 58, 237, 0.2);
-      border-radius: 15px;
-      padding: 1rem;
-      margin-bottom: 2rem;
-      text-align: center;
-      color: #7c3aed;
-      font-size: 0.9rem;
-      font-weight: 500;
-      opacity: 0;
-      transform: translateY(20px);
-      animation: slideInUp 0.8s ease-out 0.2s forwards;
-    }
-    
-    .form-section {
-      background: rgba(238, 210, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 2rem;
-      margin-bottom: 2rem;
-      box-shadow: 0 10px 40px rgba(124, 58, 237, 0.08);
-      border: 1px solid rgba(124, 58, 237, 0.1);
-      opacity: 0;
-      transform: translateY(20px);
-      animation: slideInUp 0.8s ease-out 0.3s forwards;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1.5rem;
-      align-items: end;
-    }
-    
-    @keyframes slideInUp {
-      to { 
-        opacity: 1; 
-        transform: translateY(0); 
-      }
-    }
-    
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.8rem;
-    }
-    
-    .input-group label {
-      font-weight: 600;
-      color: #5b21b6;
-      font-size: 0.95rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .input-group select, 
-    .input-group input[type="month"] {
-      padding: 1.2rem 1.5rem;
-      border: 2px solid #ddd6fe;
-      border-radius: 15px;
-      font-size: 1rem;
-      background: white;
-      color: #4c1d95;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-      outline: none;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%237e22ce' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-      background-position: right 1rem center;
-      background-repeat: no-repeat;
-      background-size: 1.5em 1.5em;
-      padding-right: 3rem;
-    }
-    
-    .input-group input[type="month"] {
-      background-image: none;
-      padding-right: 1.5rem;
-    }
-    
-    .input-group select:disabled {
-      background-color: #f3f4f6;
-      color: #9ca3af;
-      cursor: not-allowed;
-      border-color: #e5e7eb;
-    }
-    
-    .input-group select:hover:not(:disabled), 
-    .input-group input[type="month"]:hover {
-      border-color: #7c3aed;
-      box-shadow: 0 5px 20px rgba(124, 58, 237, 0.1);
-      transform: translateY(-2px);
-    }
-    
-    .input-group select:focus:not(:disabled), 
-    .input-group input[type="month"]:focus {
-      border-color: #7c3aed;
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-      transform: translateY(-2px);
-    }
-    
-    .predict-btn {
-      padding: 1.2rem 2.5rem;
-      background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
-      color: white;
-      border: none;
-      border-radius: 15px;
-      font-size: 1.1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative;
-      overflow: hidden;
-      min-width: 160px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      justify-self: center;
-      grid-column: 1 / -1;
-    }
-    
-    .predict-btn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-      transition: left 0.6s;
-    }
-    
-    .predict-btn:hover::before {
-      left: 100%;
-    }
-    
-    .predict-btn:hover:not(:disabled) {
-      transform: translateY(-3px);
-      box-shadow: 0 15px 35px rgba(124, 58, 237, 0.4);
-    }
-    
-    .predict-btn:active {
-      transform: translateY(-1px);
-    }
-    
-    .predict-btn:disabled {
-      background: #9ca3af;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-    
-    .loading {
-      display: none;
-      text-align: center;
-      padding: 3rem;
-      color: #7c3aed;
-      background: rgba(238, 210, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(124, 58, 237, 0.08);
-      border: 1px solid rgba(124, 58, 237, 0.1);
-      margin-bottom: 2rem;
-    }
-    
-    .loading.show {
-      display: block;
-    }
-    
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid #ddd6fe;
-      border-top: 4px solid #7c3aed;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-      margin: 0 auto 1.5rem;
-    }
-    
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-    
-    .loading p {
-      font-size: 1.1rem;
-      font-weight: 500;
-    }
-    
-    .results-section {
-      background: rgba(238, 210, 255, 0.95);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 2.5rem;
-      box-shadow: 0 10px 40px rgba(124, 58, 237, 0.08);
-      border: 1px solid rgba(124, 58, 237, 0.1);
-      opacity: 0;
-      transform: translateY(30px);
-      transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-      margin-bottom: 2rem;
-      width: 100%;
-      display: none;
-    }
-    
-    .results-section.show {
-      opacity: 1 !important;
-      transform: translateY(0) !important;
-      display: block !important;
-    }
-    
-    .charts-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-      margin-bottom: 2rem;
-    }
-    
-    .chart-container {
-      background: rgba(255, 255, 255, 0.8);
-      border-radius: 15px;
-      padding: 1.5rem;
-      box-shadow: 0 5px 15px rgba(124, 58, 237, 0.1);
-      border: 1px solid rgba(124, 58, 237, 0.1);
-      width: 100%;
-    }
-    
-    .chart-container h3 {
-      text-align: center;
-      margin-bottom: 1.5rem;
-      color: #5b21b6;
-      font-size: 1.3rem;
-      font-weight: 600;
-    }
-    
-    .chart-wrapper {
-      position: relative;
-      height: 400px;
-      width: 100%;
-    }
-    
-    .chart-wrapper.historical {
-      height: 450px;
-    }
-    
-    .chart-wrapper.forecast {
-      height: 350px;
-    }
-    
-    #historicalChart,
-    #forecastChart {
-      display: block !important;
-      visibility: visible !important;
-      width: 100% !important;
-      height: 100% !important;
-    }
-    
-    .recommendation-box {
-      background: linear-gradient(135deg, #faf5ff 0%, #ede9fe 100%);
-      border: 2px solid #7c3aed;
-      border-radius: 15px;
-      padding: 2rem;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-      opacity: 0;
-      transform: translateY(20px);
-      animation: slideInRecommendation 0.6s ease-out 0.3s forwards;
-    }
-    
-    @keyframes slideInRecommendation {
-      to { 
-        opacity: 1; 
-        transform: translateY(0); 
-      }
-    }
-    
-    .recommendation-box::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #7c3aed, #9333ea, #7c3aed);
-      background-size: 200% 100%;
-      animation: shimmer 2s linear infinite;
-    }
-    
-    @keyframes shimmer {
-      0% { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    
-    .recommendation-box h4 {
-      color: #9333ea;
-      font-size: 1.3rem;
-      font-weight: 700;
-      margin-bottom: 0.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    
-    .recommendation-box .message {
-      color: #6b7280;
-      font-size: 1.1rem;
-      line-height: 1.6;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-    
-    .error-message {
-      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-      color: #dc2626;
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin-top: 1rem;
-      border: 1px solid #fecaca;
-      text-align: center;
-      display: none;
-    }
-    
-    .success-message {
-      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-      color: #16a34a;
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin-top: 1rem;
-      border: 1px solid #bbf7d0;
-      text-align: center;
-      display: none;
-    }
-    
-    /* Responsive Design */
-    @media (max-width: 768px) {
-      body {
-        padding: 1rem;
-      }
-      
-      .header h1 {
-        font-size: 2rem;
-      }
-      
-      .form-section {
-        grid-template-columns: 1fr;
-        padding: 1.5rem;
-      }
-      
-      .predict-btn {
-        grid-column: 1;
-      }
-      
-      .chart-wrapper.historical {
-        height: 350px;
-      }
-      
-      .chart-wrapper.forecast {
-        height: 300px;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      body {
-        padding: 0.5rem;
-      }
-      
-      .header {
-        padding: 1.5rem;
-      }
-      
-      .header h1 {
-        font-size: 1.8rem;
-      }
-      
-      .header p {
-        font-size: 1rem;
-      }
-      
-      .results-section {
-        padding: 1.5rem;
-      }
-      
-      .form-section {
-        padding: 1rem;
-      }
-      
-      .chart-wrapper.historical {
-        height: 300px;
-      }
-      
-      .chart-wrapper.forecast {
-        height: 250px;
-      }
-      
-      .chart-container {
-        padding: 1rem;
-      }
-    }
-    
-    @media (min-width: 1024px) {
-      .chart-wrapper.historical {
-        height: 500px;
-      }
-      
-      .chart-wrapper.forecast {
-        height: 400px;
-      }
-    }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif; background:#f6f7fb; margin:0; padding:16px; color:#111827; }
+    .container { max-width:1200px; margin:0 auto; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 6px 18px rgba(0,0,0,0.05); }
+    .header { text-align:center; padding:16px; background:linear-gradient(135deg,#ede9fe,#ddd6fe); border:1px solid #e5e7eb; border-radius:12px; margin-bottom:16px; }
+    h1 { margin:0 0 8px; color:#4c1d95; }
+    .date-info { text-align:center; color:#6b7280; font-size:0.95rem; margin-bottom:16px; }
+    .grid { display:grid; gap:16px; }
+    .form-grid { grid-template-columns: repeat(5, 1fr); }
+    @media (max-width: 980px){ .form-grid{ grid-template-columns: repeat(2,1fr);} }
+    @media (max-width: 520px){ .form-grid{ grid-template-columns: 1fr;} }
+    .input-group{ display:flex; flex-direction:column; gap:6px; }
+    label{ font-size:0.85rem; font-weight:600; color:#374151; }
+    select, input[type="month"]{ padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; outline:none; font-size:0.95rem; background:#fff; }
+    select:disabled{ background:#f3f4f6; color:#9ca3af; }
+    button{ padding:12px 16px; border:none; border-radius:10px; background:#7c3aed; color:#fff; font-weight:700; cursor:pointer; }
+    button:disabled{ background:#a78bfa; cursor:not-allowed; }
+    .messages{ margin:8px 0; }
+    .msg{ display:none; padding:10px 12px; border-radius:10px; text-align:center; }
+    .error{ background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; }
+    .success{ background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+    .charts-2 { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 980px){ .charts-2{ grid-template-columns: 1fr; } }
+    .chart-box{ height:380px; }
+    @media (min-width: 1024px){ .chart-box{ height:420px; } }
+    .subtle{ color:#6b7280; font-size:0.9rem; }
   </style>
 </head>
 <body>
   <div class="container">
-    <!-- Header Section -->
-    <div class="header">
+    <div class="header card">
       <h1>ForecastFutureBuy</h1>
-      <p>Product Sales Prediction System</p>
+      <div class="subtle">Product Sales Prediction</div>
     </div>
 
-    <!-- Date Range Info -->
-    <div class="date-info">
-      Available Data Range: {{ min_date }} to {{ max_date }}
-    </div>
+    {% if min_date and max_date %}
+    <div class="date-info card">Available Data Range: {{ min_date }} to {{ max_date }}</div>
+    {% endif %}
 
-    <!-- Form Section -->
-    <div class="form-section">
-      <div class="input-group">
-        <label for="brand">Brand</label>
-        <select id="brand" required>
-          <option value="">Select Brand</option>
-          {% for brand in brands %}
-            <option value="{{ brand }}">{{ brand }}</option>
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="input-group">
-        <label for="product">Product</label>
-        <select id="product" required disabled>
-          <option value="">Select a brand first</option>
-        </select>
-      </div>
-
-      <div class="input-group">
-        <label for="model">Model</label>
-        <select id="model" required disabled>
-          <option value="">Select a product first</option>
-        </select>
-      </div>
-
-      <div class="input-group">
-        <label for="start-date">Start Date</label>
-        <input type="month" id="start-date" required 
-               min="{{ min_date }}" max="{{ max_date }}">
-      </div>
-
-      <div class="input-group">
-        <label for="end-date">End Date</label>
-        <input type="month" id="end-date" required 
-               min="{{ min_date }}" max="{{ max_date }}">
-      </div>
-
-      <button class="predict-btn" id="predict-btn">Predict</button>
-    </div>
-
-    <!-- Messages -->
-    <div id="error-message" class="error-message"></div>
-    <div id="success-message" class="success-message"></div>
-
-    <!-- Loading Section -->
-    <div id="loading" class="loading">
-      <div class="spinner"></div>
-      <p>Analyzing market trends and generating predictions...</p>
-    </div>
-
-    <!-- Results Section -->
-    <div id="results-section" class="results-section">
-      <div class="charts-grid">
-        <div class="chart-container historical">
-          <h3>Historical Sales</h3>
-          <div class="chart-wrapper historical">
-            <canvas id="historicalChart"></canvas>
-          </div>
+    <div class="card">
+      <div class="grid form-grid">
+        <div class="input-group">
+          <label for="brand">Brand</label>
+          <select id="brand" required>
+            <option value="">Select Brand</option>
+            {% for b in brands %}
+              <option value="{{ b }}">{{ b }}</option>
+            {% endfor %}
+          </select>
         </div>
-        <div class="chart-container forecast">
-          <h3>Sales Forecast</h3>
-          <div class="chart-wrapper forecast">
-            <canvas id="forecastChart"></canvas>
-          </div>
+        <div class="input-group">
+          <label for="product">Product</label>
+          <select id="product" required disabled>
+            <option value="">Select a brand first</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="model">Model</label>
+          <select id="model" required disabled>
+            <option value="">Select a product first</option>
+          </select>
+        </div>
+        <div class="input-group">
+          <label for="start-date">Start</label>
+          <input type="month" id="start-date" required {% if min_date and max_date %} min="{{ min_date }}" max="{{ max_date }}" {% endif %} />
+        </div>
+        <div class="input-group">
+          <label for="end-date">End</label>
+          <input type="month" id="end-date" required {% if min_date and max_date %} min="{{ min_date }}" max="{{ max_date }}" {% endif %} />
         </div>
       </div>
-      
-      <div class="recommendation-box">
-        <h4>Analysis & Recommendation</h4>
-        <div id="recommendation-message" class="message"></div>
+      <div style="margin-top:10px;">
+        <button id="predict-btn">Predict</button>
+      </div>
+      <div class="messages">
+        <div id="err" class="msg error"></div>
+        <div id="ok" class="msg success"></div>
+      </div>
+    </div>
+
+    <div id="results" class="card" style="display:none;">
+      <div style="font-weight:700;margin-bottom:8px;">Overview</div>
+      <div id="rec-text" class="subtle">—</div>
+
+      <div class="grid charts-2" style="margin-top:12px;">
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:6px;">Historical Sales (Adaptive View)</div>
+          <div class="chart-box"><canvas id="historicalChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:6px;">Forecast (with Confidence Band)</div>
+          <div class="chart-box"><canvas id="forecastChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid charts-2" style="margin-top:12px;">
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:6px;">Seasonality Heatmap (GitHub Style)</div>
+          <div class="chart-box"><canvas id="seasonalityChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div style="font-weight:700; margin-bottom:6px;">Revenue (Historical + Forecast)</div>
+          <div class="chart-box"><canvas id="revenueChart"></canvas></div>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    let historicalChart = null;
-    let forecastChart = null;
+    // Chart defaults
+    Chart.defaults.font.family = "system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif";
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
 
-    // Get date boundaries from backend
+    // Elements
+    const brandEl = document.getElementById('brand');
+    const productEl = document.getElementById('product');
+    const modelEl = document.getElementById('model');
+    const startEl = document.getElementById('start-date');
+    const endEl = document.getElementById('end-date');
+    const predictBtn = document.getElementById('predict-btn');
+    const errEl = document.getElementById('err');
+    const okEl = document.getElementById('ok');
+    const resultsEl = document.getElementById('results');
+    const recEl = document.getElementById('rec-text');
+
     const MIN_DATE = '{{ min_date }}';
     const MAX_DATE = '{{ max_date }}';
 
-    console.log('Chart.js loaded:', typeof Chart);
-    console.log('Available date range:', MIN_DATE, 'to', MAX_DATE);
+    // Charts
+    let histChart=null, fcChart=null, seasChart=null, revChart=null;
 
-    // Cascading Dropdown Logic: Brand → Product → Model
-    document.addEventListener('DOMContentLoaded', function () {
-        const brandSelect = document.getElementById('brand');
-        const productSelect = document.getElementById('product');
-        const modelSelect = document.getElementById('model');
-        const startDateInput = document.getElementById('start-date');
-        const endDateInput = document.getElementById('end-date');
+    // Defaults for dates
+    (function setDefaults(){
+      if (MIN_DATE && MAX_DATE) {
+        const maxDate = new Date(MAX_DATE + '-01');
+        const minDate = new Date(MIN_DATE + '-01');
+        const defaultStart = new Date(maxDate);
+        defaultStart.setMonth(defaultStart.getMonth() - 6);
+        startEl.value = (defaultStart < minDate) ? MIN_DATE : defaultStart.toISOString().slice(0,7);
+        endEl.value = MAX_DATE;
+      }
+    })();
 
-        // Set default dates within valid range
-        setDefaultDates();
-
-        // Initially disable product and model selects
-        productSelect.disabled = true;
-        modelSelect.disabled = true;
-
-        // Brand selection changes
-        brandSelect.addEventListener('change', async function () {
-            const selectedBrand = this.value;
-            
-            // Reset dependent dropdowns
-            productSelect.innerHTML = '<option value="">Loading...</option>';
-            productSelect.disabled = true;
-            modelSelect.innerHTML = '<option value="">Select a product first</option>';
-            modelSelect.disabled = true;
-
-            if (!selectedBrand) {
-                productSelect.innerHTML = '<option value="">Select a brand first</option>';
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/products/${encodeURIComponent(selectedBrand)}`);
-                if (!response.ok) {
-                    throw new Error('Failed to load products from server.');
-                }
-                const products = await response.json();
-
-                productSelect.innerHTML = '';
-                if (products && products.length > 0) {
-                    productSelect.add(new Option('Select Product', ''));
-                    products.forEach(product => {
-                        productSelect.add(new Option(product, product));
-                    });
-                    productSelect.disabled = false;
-                } else {
-                    productSelect.innerHTML = '<option value="">No products found</option>';
-                }
-            } catch (error) {
-                console.error('Error fetching products:', error);
-                productSelect.innerHTML = '<option value="">Error loading products</option>';
-                showMessage(error.message, 'error');
-            }
-        });
-
-        // Product selection changes
-        productSelect.addEventListener('change', async function () {
-            const selectedBrand = brandSelect.value;
-            const selectedProduct = this.value;
-            
-            // Reset model dropdown
-            modelSelect.innerHTML = '<option value="">Loading...</option>';
-            modelSelect.disabled = true;
-
-            if (!selectedBrand || !selectedProduct) {
-                modelSelect.innerHTML = '<option value="">Select brand and product first</option>';
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/models/${encodeURIComponent(selectedBrand)}/${encodeURIComponent(selectedProduct)}`);
-                if (!response.ok) {
-                    throw new Error('Failed to load models from server.');
-                }
-                const models = await response.json();
-
-                modelSelect.innerHTML = '';
-                if (models && models.length > 0) {
-                    modelSelect.add(new Option('Select Model', ''));
-                    models.forEach(model => {
-                        modelSelect.add(new Option(model, model));
-                    });
-                    modelSelect.disabled = false;
-                } else {
-                    modelSelect.innerHTML = '<option value="">No models found</option>';
-                }
-            } catch (error) {
-                console.error('Error fetching models:', error);
-                modelSelect.innerHTML = '<option value="">Error loading models</option>';
-                showMessage(error.message, 'error');
-            }
-        });
-
-        // Date validation on change
-        startDateInput.addEventListener('change', validateDateRange);
-        endDateInput.addEventListener('change', validateDateRange);
-    });
-
-    function setDefaultDates() {
-        const startDateInput = document.getElementById('start-date');
-        const endDateInput = document.getElementById('end-date');
-        
-        // Only set defaults if we have valid date boundaries
-        if (MIN_DATE && MAX_DATE) {
-            // Set default start date to 6 months before max date or min date if range is small
-            const maxDate = new Date(MAX_DATE + '-01');
-            const minDate = new Date(MIN_DATE + '-01');
-            
-            // Calculate default start date (6 months before max, but not before min)
-            const defaultStart = new Date(maxDate);
-            defaultStart.setMonth(defaultStart.getMonth() - 6);
-            
-            if (defaultStart < minDate) {
-                startDateInput.value = MIN_DATE;
-            } else {
-                startDateInput.value = defaultStart.toISOString().substr(0, 7);
-            }
-            
-            // Set default end date to max available date
-            endDateInput.value = MAX_DATE;
-        }
+    // Helpers
+    function showError(msg){ errEl.textContent=msg; errEl.style.display='block'; okEl.style.display='none'; }
+    function showOk(msg){ okEl.textContent=msg; okEl.style.display='block'; errEl.style.display='none'; }
+    function clearMsgs(){ errEl.style.display='none'; okEl.style.display='none'; }
+    function validateDates(){
+      const s=startEl.value, e=endEl.value;
+      if (!s || !e) return false;
+      if (s >= e){ showError('End date must be after start date.'); return false; }
+      if (MIN_DATE && s < MIN_DATE){ showError(`Start date must be ≥ ${MIN_DATE}.`); return false; }
+      if (MAX_DATE && e > MAX_DATE){ showError(`End date must be ≤ ${MAX_DATE}.`); return false; }
+      return true;
     }
-
-    function validateDateRange() {
-        const startDate = document.getElementById('start-date').value;
-        const endDate = document.getElementById('end-date').value;
-        
-        if (startDate && endDate) {
-            if (startDate >= endDate) {
-                showMessage('End date must be after start date.', 'error');
-                return false;
-            }
-            
-            // Check if dates are within valid range
-            if (MIN_DATE && MAX_DATE) {
-                if (startDate < MIN_DATE || startDate > MAX_DATE) {
-                    showMessage(`Start date must be between ${MIN_DATE} and ${MAX_DATE}.`, 'error');
-                    return false;
-                }
-                
-                if (endDate < MIN_DATE || endDate > MAX_DATE) {
-                    showMessage(`End date must be between ${MIN_DATE} and ${MAX_DATE}.`, 'error');
-                    return false;
-                }
-            }
-            
-            // Clear error messages if validation passes
-            document.getElementById('error-message').style.display = 'none';
-            return true;
-        }
-        return true;
-    }
-
-    function showMessage(message, type = 'error') {
-      const errorEl = document.getElementById('error-message');
-      const successEl = document.getElementById('success-message');
-      
-      errorEl.style.display = 'none';
-      successEl.style.display = 'none';
-      
-      if (type === 'error') {
-        errorEl.textContent = message;
-        errorEl.style.display = 'block';
+    function populateSelect(sel, items, placeholder){
+      sel.innerHTML='';
+      if (items && items.length){
+        sel.add(new Option(placeholder,''));
+        items.forEach(v=>sel.add(new Option(v,v)));
+        sel.disabled=false;
       } else {
-        successEl.textContent = message;
-        successEl.style.display = 'block';
+        sel.add(new Option(`No ${placeholder.toLowerCase()} found`, ''));
+        sel.disabled=true;
       }
     }
 
-    function createCharts(data) {
-      console.log('Creating charts with data:', data);
-      
-      if (historicalChart) historicalChart.destroy();
-      if (forecastChart) forecastChart.destroy();
-      
-      const historicalCtx = document.getElementById('historicalChart');
-      const forecastCtx = document.getElementById('forecastChart');
-      
-      if (!historicalCtx || !forecastCtx) {
-        console.error('Canvas elements not found');
-        return;
+    // Downsample labels and data to every Nth point
+    function downsampleSeries(labels, values, step) {
+      if (step <= 1) return { labels, values };
+      const dsL = [], dsV = [];
+      for (let i = 0; i < labels.length; i += step) {
+        dsL.push(labels[i]);
+        dsV.push(values[i]);
       }
-      
-      const chartOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        },
-        plugins: { 
-          legend: { 
-            position: 'top',
-            labels: {
-              color: '#5b21b6',
-              font: {
-                size: 12,
-                weight: '600'
-              },
-              padding: 15
-            }
-          },
-          tooltip: {
-            backgroundColor: 'rgba(124, 58, 237, 0.9)',
-            titleColor: '#ffffff',
-            bodyColor: '#ffffff',
-            borderColor: '#7c3aed',
-            borderWidth: 1
-          }
-        },
-        scales: { 
-          y: { 
-            beginAtZero: true,
-            ticks: {
-              color: '#5b21b6',
-              font: {
-                size: 11,
-                weight: '500'
-              }
-            },
-            grid: {
-              color: 'rgba(124, 58, 237, 0.1)',
-              lineWidth: 1
-            },
-            border: {
-              color: '#7c3aed'
-            }
-          },
-          x: {
-            ticks: {
-              color: '#5b21b6',
-              font: {
-                size: 11,
-                weight: '500'
-              },
-              maxRotation: 45
-            },
-            grid: {
-              color: 'rgba(124, 58, 237, 0.1)',
-              lineWidth: 1
-            },
-            border: {
-              color: '#7c3aed'
-            }
-          }
+      return { labels: dsL, values: dsV };
+    }
+    // Aggregate monthly values to quarterly
+    function toQuarterly(labels, values) {
+      const outL = [], outV = [];
+      let qSum = 0, currentQ = null;
+      for (let i = 0; i < labels.length; i++) {
+        const [y, m] = labels[i].split('-').map(Number);
+        const q = Math.floor((m - 1) / 3) + 1;
+        const tag = `${y}-Q${q}`;
+        if (currentQ === null) currentQ = tag;
+        if (tag !== currentQ) {
+          outL.push(currentQ);
+          outV.push(qSum);
+          qSum = 0; currentQ = tag;
         }
-      };
-
-      try {
-        // Create Historical Chart
-        historicalChart = new Chart(historicalCtx.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: data.history?.labels || [],
-            datasets: [{
-              label: 'Historical Sales',
-              data: data.history?.values || [],
-              borderColor: '#7c3aed',
-              backgroundColor: 'rgba(124, 58, 237, 0.1)',
-              borderWidth: 3,
-              fill: true,
-              tension: 0.4
-            }]
-          },
-          options: chartOptions
-        });
-
-        // Create Forecast Chart
-        forecastChart = new Chart(forecastCtx.getContext('2d'), {
-          type: 'line',
-          data: {
-            labels: data.forecast?.labels || [],
-            datasets: [
-              {
-                label: 'Forecast',
-                data: data.forecast?.values || [],
-                borderColor: '#22c55e',
-                backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                borderWidth: 3,
-                fill: false,
-                tension: 0.4
-              },
-              {
-                label: 'High Confidence',
-                data: data.forecast?.highs || [],
-                borderColor: '#c084fc',
-                borderDash: [5, 5],
-                borderWidth: 2,
-                fill: false,
-                tension: 0.4
-              },
-              {
-                label: 'Low Confidence',
-                data: data.forecast?.lows || [],
-                borderColor: '#a855f7',
-                borderDash: [5, 5],
-                borderWidth: 2,
-                fill: false,
-                tension: 0.4
-              }
-            ]
-          },
-          options: chartOptions
-        });
-        
-        console.log('Charts created successfully');
-      } catch (error) {
-        console.error('Error creating charts:', error);
-        showMessage('Error creating charts: ' + error.message, 'error');
+        qSum += Number(values[i] || 0);
       }
+      if (currentQ !== null) {
+        outL.push(currentQ);
+        outV.push(qSum);
+      }
+      return { labels: outL, values: outV };
+    }
+    // Decide presentation mode based on span
+    function pickScaleMode(labels) {
+      if (!labels.length) return { mode: 'monthly', step: 1 };
+      const startY = Number(labels[0].slice(0,4));
+      const endY = Number(labels[labels.length-1].slice(0,4));
+      const span = endY - startY + 1;
+      if (span >= 12) return { mode: 'quarterly' };        // 12+ years → quarterly bars
+      if (span >= 6) return { mode: 'monthly', step: 3 };  // 6–11 years → every 3rd month
+      if (span >= 3) return { mode: 'monthly', step: 2 };  // 3–5 years → every 2nd month
+      return { mode: 'monthly', step: 1 };
+    }
+    // Heatmap color scale (purple ramp)
+    function heatmapColor(value, vmax) {
+      if (!vmax || vmax <= 0) return 'rgba(229,231,235,1)'; // light gray
+      const t = Math.max(0, Math.min(1, value / vmax));
+      // color stops: #ede9fe, #ddd6fe, #c4b5fd, #a78bfa, #7c3aed
+      const stops = [
+        [237,233,254],
+        [221,214,254],
+        [196,181,253],
+        [167,139,250],
+        [124, 58,237],
+      ];
+      const idx = Math.min(stops.length - 1, Math.floor(t * (stops.length - 1)));
+      const [r,g,b] = stops[idx];
+      return `rgba(${r},${g},${b},1)`;
     }
 
-    async function handlePredict() {
-      const brand = document.getElementById('brand').value;
-      const product = document.getElementById('product').value;
-      const model = document.getElementById('model').value;
-      const start = document.getElementById('start-date').value;
-      const end = document.getElementById('end-date').value;
-      const predictBtn = document.getElementById('predict-btn');
-      const loading = document.getElementById('loading');
-      const resultsSection = document.getElementById('results-section');
-
-      if (!brand || !product || !model || !start || !end) {
-        showMessage('Please select brand, product, model, and both dates.', 'error');
-        return;
-      }
-
-      if (!validateDateRange()) {
-        return;
-      }
-
-      predictBtn.disabled = true;
-      loading.classList.add('show');
-      resultsSection.classList.remove('show');
-      resultsSection.style.display = 'none';
-
-      try {
-        console.log('Making API request...');
-        
-        const response = await fetch('/api/forecast', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          body: JSON.stringify({
-            brand: brand,
-            product: product,
-            model: model,
-            start_date: start + "-01",
-            end_date: end + "-01"
-          })
-        });
-
-        const data = await response.json();
-        console.log('API Response:', data);
-
-        if (!response.ok) {
-          throw new Error(data.error || `HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        if (!data.history || !data.forecast) {
-          throw new Error('Invalid response: missing history or forecast data');
-        }
-
-        createCharts(data);
-        
-        const recommendationEl = document.getElementById('recommendation-message');
-        if (recommendationEl) {
-          recommendationEl.textContent = data.recommendation?.message || 'Forecast generated successfully';
-        }
-
-        resultsSection.style.display = 'block';
-        setTimeout(() => {
-          resultsSection.classList.add('show');
-        }, 100);
-
-        showMessage('Prediction successful!', 'success');
-
-      } catch (error) {
-        console.error('Prediction error:', error);
-        showMessage(error.message || 'An error occurred while fetching data.', 'error');
-      } finally {
-        predictBtn.disabled = false;
-        loading.classList.remove('show');
-      }
-    }
-
-    // Event listeners
-    document.getElementById('predict-btn').addEventListener('click', handlePredict);
-
-    // Form validation on input change
-    ['brand', 'product', 'model', 'start-date', 'end-date'].forEach(id => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.addEventListener('change', () => {
-          document.getElementById('error-message').style.display = 'none';
-          document.getElementById('success-message').style.display = 'none';
-        });
-      }
+    // Cascading selects
+    brandEl.addEventListener('change', async function(){
+      clearMsgs();
+      const b=this.value;
+      productEl.disabled=true; modelEl.disabled=true;
+      productEl.innerHTML='<option value="">Loading...</option>';
+      modelEl.innerHTML='<option value="">Select a product first</option>';
+      if (!b){ productEl.innerHTML='<option value="">Select a brand first</option>'; return; }
+      try{
+        const r=await fetch(`/api/products/${encodeURIComponent(b)}`);
+        if(!r.ok) throw new Error('Failed to fetch products');
+        const products=await r.json();
+        populateSelect(productEl, products, 'Select Product');
+        modelEl.innerHTML='<option value="">Select a product first</option>';
+        modelEl.disabled=true;
+      }catch(e){ showError(e.message); productEl.innerHTML='<option value="">Error loading products</option>'; productEl.disabled=true; }
     });
 
-    console.log('ForecastFutureBuy application initialized');
+    productEl.addEventListener('change', async function(){
+      clearMsgs();
+      const b=brandEl.value, p=this.value;
+      modelEl.disabled=true; modelEl.innerHTML='<option value="">Loading...</option>';
+      if (!b || !p){ modelEl.innerHTML='<option value="">Select brand and product first</option>'; return; }
+      try{
+        const r=await fetch(`/api/models/${encodeURIComponent(b)}/${encodeURIComponent(p)}`);
+        if(!r.ok) throw new Error('Failed to fetch models');
+        const models=await r.json();
+        populateSelect(modelEl, models, 'Select Model');
+      }catch(e){ showError(e.message); modelEl.innerHTML='<option value="">Error loading models</option>'; modelEl.disabled=true; }
+    });
+
+    // Predict
+    predictBtn.addEventListener('click', async function(){
+      clearMsgs();
+      const b=brandEl.value, p=productEl.value, m=modelEl.value, s=startEl.value, e=endEl.value;
+      if(!b||!p||!m||!s||!e){ showError('Please select brand, product, model, and both dates.'); return; }
+      if(!validateDates()) return;
+      predictBtn.disabled=true;
+      try{
+        const resp=await fetch('/api/forecast', {
+          method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
+          body:JSON.stringify({brand:b,product:p,model:m,start_date:s+'-01',end_date:e+'-01'})
+        });
+        const data=await resp.json();
+        if(!resp.ok) throw new Error(data.error||'Failed to get forecast');
+        renderAll(data);
+        resultsEl.style.display='block';
+        showOk('Forecast generated successfully.');
+      }catch(err){ showError(err.message); }
+      finally{ predictBtn.disabled=false; }
+    });
+
+    function renderAll(data){
+      recEl.textContent = data?.recommendation?.message || 'Forecast generated.';
+      renderHistorical(data);
+      renderForecast(data);
+      renderSeasonality(data?.seasonality||[]);
+      renderRevenue(data);
+    }
+
+    function renderHistorical(data){
+      const ctx=document.getElementById('historicalChart').getContext('2d');
+      if(histChart) histChart.destroy();
+      const labels=data?.history?.labels||[];
+      const values=data?.history?.values||[];
+
+      const mode = pickScaleMode(labels);
+      let L = labels, V = values, type='line', datasets;
+
+      if (mode.mode === 'quarterly') {
+        const q = toQuarterly(labels, values);
+        L = q.labels; V = q.values; type='bar';
+      } else if (mode.step > 1) {
+        const ds = downsampleSeries(labels, values, mode.step);
+        L = ds.labels; V = ds.values;
+      }
+
+      if (type==='line') {
+        const ma = (arr, w) => arr.map((_,i)=> i+1<w ? null : Math.round(arr.slice(i-w+1,i+1).reduce((a,b)=>a+Number(b||0),0)/w));
+        const ma3 = ma(V,3), ma6 = ma(V,6), ma12 = ma(V,12);
+        datasets = [
+          { label:'Historical', data:V, borderColor:'#7c3aed', backgroundColor:'rgba(124,58,237,0.12)', fill:true, tension:0.35 },
+          { label:'MA(3)', data:ma3, borderColor:'#10b981', borderDash:[6,4], tension:0.35 },
+          { label:'MA(6)', data:ma6, borderColor:'#f59e0b', borderDash:[6,4], tension:0.35 },
+          { label:'MA(12)', data:ma12, borderColor:'#ef4444', borderDash:[6,4], tension:0.35 }
+        ];
+      } else {
+        datasets = [
+          { label:'Historical (Quarterly)', data:V, backgroundColor:'rgba(124,58,237,0.7)', borderColor:'#7c3aed' }
+        ];
+      }
+
+      histChart = new Chart(ctx, {
+        type,
+        data: { labels:L, datasets },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          interaction:{ intersect:false, mode:'index' },
+          scales:{ y:{ beginAtZero:true }, x:{ ticks:{ maxRotation:45, autoSkip:true, maxTicksLimit:12 } } },
+          plugins:{
+            legend:{ labels:{ usePointStyle:true} },
+            zoom:{
+              pan:{ enabled:true, mode:'x' },
+              zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'x' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderForecast(data){
+      const ctx=document.getElementById('forecastChart').getContext('2d');
+      if(fcChart) fcChart.destroy();
+      const labels=data?.forecast?.labels||[];
+      const vals=data?.forecast?.values||[];
+      const highs=data?.forecast?.highs||[];
+      const lows=data?.forecast?.lows||[];
+
+      fcChart = new Chart(ctx, {
+        type:'line',
+        data:{
+          labels,
+          datasets:[
+            { label:'Confidence Upper', data:highs, borderColor:'rgba(167,139,250,0.8)', backgroundColor:'rgba(167,139,250,0.15)', fill:'+1', pointRadius:0, tension:0.35 },
+            { label:'Confidence Lower', data:lows,  borderColor:'rgba(167,139,250,0.8)', backgroundColor:'rgba(167,139,250,0.15)', fill:'-1', pointRadius:0, tension:0.35 },
+            { label:'Forecast', data:vals, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,0.08)', fill:false, tension:0.35 }
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          interaction:{ intersect:false, mode:'index' },
+          scales:{ y:{ beginAtZero:true }, x:{ ticks:{ maxRotation:45, autoSkip:true } } },
+          plugins:{
+            legend:{ labels:{ usePointStyle:true } },
+            zoom:{
+              pan:{ enabled:true, mode:'x' },
+              zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'x' }
+            }
+          }
+        }
+      });
+    }
+
+    function renderSeasonality(heat){
+      const ctx=document.getElementById('seasonalityChart').getContext('2d');
+      if(seasChart) seasChart.destroy();
+
+      if (!Array.isArray(heat) || !heat.length) {
+        seasChart = new Chart(ctx, { type:'bar', data:{ labels:[], datasets:[] }, options:{ responsive:true, maintainAspectRatio:false }});
+        return;
+      }
+
+      const years = [...new Set(heat.map(h=>h.year))].sort((a,b)=>a-b);
+      let vmax = 0;
+      heat.forEach(h => { if (h.value > vmax) vmax = h.value; });
+
+      const yIndex = (y) => years.indexOf(y);
+      const matrixData = heat.map(h => ({
+        x: h.month - 1,
+        y: yIndex(h.year),
+        v: h.value,
+        w: 18,
+        h: 18
+      }));
+
+      seasChart = new Chart(ctx, {
+        type: 'matrix',
+        data: {
+          datasets: [{
+            label: 'Seasonality',
+            data: matrixData,
+            backgroundColor: ctx => heatmapColor(ctx.raw.v, vmax),
+            borderColor: 'rgba(255,255,255,0.8)',
+            borderWidth: 1,
+            width: ctx => ctx.raw.w,
+            height: ctx => ctx.raw.h
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: () => '',
+                label: ctx => {
+                  const mIdx = ctx.raw.x;
+                  const year = years[ctx.raw.y];
+                  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                  return `${monthNames[mIdx]} ${year}: ${ctx.raw.v.toLocaleString()}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              position: 'top',
+              min: -0.5,
+              max: 11.5,
+              ticks: {
+                callback: (v) => ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][v],
+                maxRotation: 0,
+                autoSkip: false
+              },
+              grid: { display: false }
+            },
+            y: {
+              type: 'linear',
+              min: -0.5,
+              max: years.length - 0.5,
+              ticks: { callback: (v) => years[v] ?? '', autoSkip: false },
+              reverse: true,
+              grid: { display: false }
+            }
+          }
+        }
+      });
+    }
+
+    function renderRevenue(data){
+      const ctx=document.getElementById('revenueChart').getContext('2d');
+      if(revChart) revChart.destroy();
+      const histLabels=data?.history?.labels||[];
+      const histRev=data?.history?.revenue||[];
+      const fLabels=data?.forecast?.labels||[];
+      const fRev=data?.forecast?.revenue||[];
+
+      const mode = pickScaleMode(histLabels);
+      let Lh=histLabels, Rh=histRev, type='bar';
+
+      if (mode.mode === 'quarterly') {
+        const q = toQuarterly(histLabels, histRev);
+        Lh = q.labels; Rh = q.values;
+      } else if (mode.step > 1) {
+        const ds = downsampleSeries(histLabels, histRev, mode.step);
+        Lh = ds.labels; Rh = ds.values;
+      }
+
+      revChart = new Chart(ctx, {
+        type,
+        data:{
+          labels: [...Lh, ...fLabels],
+          datasets:[
+            { label:'Historical Revenue', data: Rh.concat(Array(fLabels.length).fill(null)), backgroundColor:'rgba(16,185,129,0.7)' },
+            { label:'Forecast Revenue', data: Array(Lh.length).fill(null).concat(fRev), backgroundColor:'rgba(37,99,235,0.7)' }
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          scales:{ 
+            y:{ beginAtZero:true, ticks:{ callback:(v)=> v>=1000000? (v/1000000)+'M' : v>=1000? (v/1000)+'k' : v } }, 
+            x:{ ticks:{ maxRotation:45, autoSkip:true, maxTicksLimit:12 } } 
+          },
+          plugins:{
+            legend:{ labels:{ usePointStyle:true } },
+            zoom:{
+              pan:{ enabled:true, mode:'x' },
+              zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'x' }
+            }
+          }
+        }
+      });
+    }
   </script>
 </body>
 </html>
