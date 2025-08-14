@@ -13,42 +13,381 @@
   <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-matrix@2.0.1/dist/chartjs-chart-matrix.min.js"></script>
 
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif; background:#f6f7fb; margin:0; padding:16px; color:#111827; }
-    .container { max-width:1200px; margin:0 auto; }
-    .card { background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:16px; box-shadow:0 6px 18px rgba(0,0,0,0.05); }
-    .header { text-align:center; padding:16px; background:linear-gradient(135deg,#ede9fe,#ddd6fe); border:1px solid #e5e7eb; border-radius:12px; margin-bottom:16px; }
-    h1 { margin:0 0 8px; color:#4c1d95; }
-    .date-info { text-align:center; color:#6b7280; font-size:0.95rem; margin-bottom:16px; }
-    .grid { display:grid; gap:16px; }
-    .form-grid { grid-template-columns: repeat(5, 1fr); }
-    @media (max-width: 980px){ .form-grid{ grid-template-columns: repeat(2,1fr);} }
-    @media (max-width: 520px){ .form-grid{ grid-template-columns: 1fr;} }
-    .input-group{ display:flex; flex-direction:column; gap:6px; }
-    label{ font-size:0.85rem; font-weight:600; color:#374151; }
-    select, input[type="month"]{ padding:10px 12px; border:1px solid #d1d5db; border-radius:10px; outline:none; font-size:0.95rem; background:#fff; }
-    select:disabled{ background:#f3f4f6; color:#9ca3af; }
-    button{ padding:12px 16px; border:none; border-radius:10px; background:#7c3aed; color:#fff; font-weight:700; cursor:pointer; }
-    button:disabled{ background:#a78bfa; cursor:not-allowed; }
-    .messages{ margin:8px 0; }
-    .msg{ display:none; padding:10px 12px; border-radius:10px; text-align:center; }
-    .error{ background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; }
-    .success{ background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
-    .charts-2 { grid-template-columns: 1fr 1fr; }
-    @media (max-width: 980px){ .charts-2{ grid-template-columns: 1fr; } }
-    .chart-box{ height:380px; }
-    @media (min-width: 1024px){ .chart-box{ height:420px; } }
-    .subtle{ color:#6b7280; font-size:0.9rem; }
+    * { box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); 
+      margin: 0; 
+      padding: 16px; 
+      color: #1e293b; 
+      line-height: 1.6;
+    }
+    
+    .container { 
+      max-width: 1400px; 
+      margin: 0 auto; 
+      padding: 0 16px;
+    }
+    
+    .card { 
+      background: #ffffff; 
+      border: 1px solid #e2e8f0; 
+      border-radius: 16px; 
+      padding: 24px; 
+      margin-bottom: 24px; 
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 10px 20px -5px rgba(0, 0, 0, 0.08);
+    }
+    
+    .header { 
+      text-align: center; 
+      padding: 32px 24px; 
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%); 
+      color: white;
+      border: none;
+      margin-bottom: 32px;
+    }
+    
+    h1 { 
+      margin: 0 0 12px; 
+      font-size: 2.5rem; 
+      font-weight: 800; 
+      letter-spacing: -0.025em;
+    }
+    
+    .date-info { 
+      text-align: center; 
+      color: #64748b; 
+      font-size: 1rem; 
+      margin-bottom: 24px; 
+      padding: 16px;
+      background: #f1f5f9;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .grid { 
+      display: grid; 
+      gap: 20px; 
+    }
+    
+    .form-grid { 
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+      gap: 20px;
+    }
+    
+    .input-group { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 8px; 
+    }
+    
+    label { 
+      font-size: 0.875rem; 
+      font-weight: 600; 
+      color: #374151; 
+      margin-bottom: 4px;
+    }
+    
+    select, input[type="month"] { 
+      padding: 12px 16px; 
+      border: 2px solid #e2e8f0; 
+      border-radius: 12px; 
+      outline: none; 
+      font-size: 1rem; 
+      background: #ffffff;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    select:focus, input[type="month"]:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+    
+    select:disabled { 
+      background: #f8fafc; 
+      color: #94a3b8; 
+      cursor: not-allowed;
+    }
+    
+    button { 
+      padding: 14px 28px; 
+      border: none; 
+      border-radius: 12px; 
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); 
+      color: #ffffff; 
+      font-weight: 700; 
+      font-size: 1rem;
+      cursor: pointer; 
+      transition: all 0.2s ease;
+      margin-top: 16px;
+    }
+    
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4);
+    }
+    
+    button:disabled { 
+      background: #94a3b8; 
+      cursor: not-allowed; 
+      transform: none;
+      box-shadow: none;
+    }
+    
+    .messages { 
+      margin: 16px 0; 
+    }
+    
+    .msg { 
+      display: none; 
+      padding: 12px 16px; 
+      border-radius: 12px; 
+      text-align: center; 
+      font-weight: 500;
+    }
+    
+    .error { 
+      background: #fef2f2; 
+      color: #dc2626; 
+      border: 1px solid #fecaca; 
+    }
+    
+    .success { 
+      background: #f0fdf4; 
+      color: #16a34a; 
+      border: 1px solid #bbf7d0; 
+    }
+    
+    /* Tab Navigation Styles */
+    .tab-navigation {
+      display: flex;
+      justify-content: center;
+      margin: 32px 0;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 8px;
+      box-shadow: 0 4px 15px -5px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
+      gap: 4px;
+    }
+    
+    .tab-button {
+      flex: 1;
+      min-width: 140px;
+      padding: 16px 24px;
+      background: transparent;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      white-space: nowrap;
+    }
+    
+    .tab-button:hover {
+      background: #f1f5f9;
+      color: #1e293b;
+      transform: translateY(-1px);
+    }
+    
+    .tab-button.active {
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      color: #ffffff;
+      box-shadow: 0 8px 20px -5px rgba(99, 102, 241, 0.4);
+    }
+    
+    .tab-button.active:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 25px -5px rgba(99, 102, 241, 0.5);
+    }
+    
+    /* Tab Content Styles */
+    .tab-content {
+      display: none;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .charts-2 { 
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr)); 
+      gap: 24px;
+    }
+    
+    .charts-3 { 
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); 
+      gap: 24px;
+    }
+    
+    @media (max-width: 1200px) { 
+      .charts-2, .charts-3 { 
+        grid-template-columns: 1fr; 
+      }
+    }
+    
+    .chart-box { 
+      height: 400px; 
+      position: relative;
+      background: #fafafa;
+      border-radius: 12px;
+      padding: 16px;
+    }
+    
+    @media (min-width: 1400px) { 
+      .chart-box { 
+        height: 450px; 
+      }
+    }
+    
+    .chart-title {
+      font-size: 1.125rem;
+      font-weight: 700; 
+      margin-bottom: 16px; 
+      color: #1e293b;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+    
+    .subtle { 
+      color: #64748b; 
+      font-size: 1rem; 
+      font-weight: 500;
+    }
+    
+    .section-title { 
+      font-size: 1.5rem; 
+      font-weight: 800; 
+      margin: 32px 0 20px; 
+      color: #1e293b; 
+      padding: 16px 0 12px; 
+      border-bottom: 3px solid #6366f1; 
+      position: relative;
+      text-align: center;
+    }
+    
+    .section-title::after {
+      content: '';
+      position: absolute;
+      bottom: -3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    }
+    
+    .overview-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      border-left: 4px solid #6366f1;
+      padding: 24px;
+      margin-bottom: 32px;
+    }
+    
+    .overview-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #1e293b;
+    }
+    
+    /* Enhanced responsive breakpoints */
+    @media (max-width: 768px) {
+      .container { padding: 0 12px; }
+      .card { padding: 16px; margin-bottom: 16px; }
+      .header { padding: 24px 16px; }
+      h1 { font-size: 2rem; }
+      .section-title { font-size: 1.25rem; margin: 24px 0 16px; }
+      .chart-box { height: 300px; padding: 12px; }
+      
+      .tab-navigation {
+        margin: 20px 0;
+        padding: 6px;
+      }
+      
+      .tab-button {
+        min-width: 100px;
+        padding: 12px 16px;
+        font-size: 0.875rem;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .chart-box { height: 280px; }
+      h1 { font-size: 1.75rem; }
+      
+      .tab-navigation {
+        flex-direction: column;
+        gap: 4px;
+      }
+      
+      .tab-button {
+        min-width: unset;
+        width: 100%;
+      }
+    }
+    
+    /* Chart container improvements */
+    .chart-container {
+      position: relative;
+      height: 100%;
+      width: 100%;
+    }
+    
+    /* Tab specific icons */
+    .tab-button::before {
+      content: '';
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    
+    .tab-button[data-tab="sales-forecasting"]::before {
+      content: '📈';
+    }
+    
+    .tab-button[data-tab="revenue-analytics"]::before {
+      content: '💰';
+    }
+    
+    .tab-button[data-tab="performance"]::before {
+      content: '📊';
+    }
+    
+    .tab-button[data-tab="ratings"]::before {
+      content: '⭐';
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="header card">
       <h1>ForecastFutureBuy</h1>
-      <div class="subtle">Product Sales Prediction</div>
+      <div class="subtle">Advanced Sales Prediction & Revenue Analytics</div>
     </div>
 
     {% if min_date and max_date %}
-    <div class="date-info card">Available Data Range: {{ min_date }} to {{ max_date }}</div>
+    <div class="date-info">
+      <strong>Available Data Range:</strong> {{ min_date }} to {{ max_date }}
+    </div>
     {% endif %}
 
     <div class="card">
@@ -75,17 +414,15 @@
           </select>
         </div>
         <div class="input-group">
-          <label for="start-date">Start</label>
+          <label for="start-date">Start Date</label>
           <input type="month" id="start-date" required {% if min_date and max_date %} min="{{ min_date }}" max="{{ max_date }}" {% endif %} />
         </div>
         <div class="input-group">
-          <label for="end-date">End</label>
+          <label for="end-date">End Date</label>
           <input type="month" id="end-date" required {% if min_date and max_date %} min="{{ min_date }}" max="{{ max_date }}" {% endif %} />
         </div>
       </div>
-      <div style="margin-top:10px;">
-        <button id="predict-btn">Predict</button>
-      </div>
+      <button id="predict-btn">Generate Forecast</button>
       <div class="messages">
         <div id="err" class="msg error"></div>
         <div id="ok" class="msg success"></div>
@@ -93,37 +430,178 @@
     </div>
 
     <div id="results" class="card" style="display:none;">
-      <div style="font-weight:700;margin-bottom:8px;">Overview</div>
-      <div id="rec-text" class="subtle">—</div>
+      <div class="overview-card">
+        <div class="overview-title">Forecast Overview</div>
+        <div id="rec-text" class="subtle">Loading forecast results...</div>
+      </div>
 
-      <div class="grid charts-2" style="margin-top:12px;">
-        <div class="card">
-          <div style="font-weight:700; margin-bottom:6px;">Historical Sales (Adaptive View)</div>
-          <div class="chart-box"><canvas id="historicalChart"></canvas></div>
+      <!-- Tab Navigation -->
+      <div class="tab-navigation">
+        <button class="tab-button active" data-tab="sales-forecasting">Sales Forecasting</button>
+        <button class="tab-button" data-tab="revenue-analytics">Revenue Analytics</button>
+        <button class="tab-button" data-tab="performance">Performance Analysis</button>
+        <button class="tab-button" data-tab="ratings">Customer Ratings</button>
+      </div>
+
+      <!-- Sales Forecasting Tab -->
+      <div id="sales-forecasting" class="tab-content active">
+        <div class="section-title">Sales Forecasting</div>
+        <div class="grid charts-2">
+          <div class="card">
+            <div class="chart-title">Historical Sales Analysis</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="historicalChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="chart-title">Future Sales Forecast</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="forecastChart"></canvas>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="card">
-          <div style="font-weight:700; margin-bottom:6px;">Forecast (with Confidence Band)</div>
-          <div class="chart-box"><canvas id="forecastChart"></canvas></div>
+        <div class="grid charts-2">
+          <div class="card">
+            <div class="chart-title">Seasonal Patterns</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="seasonalityChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="chart-title">Revenue Overview</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="revenueChart"></canvas>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="grid charts-2" style="margin-top:12px;">
-        <div class="card">
-          <div style="font-weight:700; margin-bottom:6px;">Seasonality Heatmap (GitHub Style)</div>
-          <div class="chart-box"><canvas id="seasonalityChart"></canvas></div>
+      <!-- Revenue Analytics Tab -->
+      <div id="revenue-analytics" class="tab-content">
+        <div class="section-title">Revenue Analytics</div>
+        <div class="grid charts-3">
+          <div class="card">
+            <div class="chart-title">Revenue Trend Analysis</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="revenueTrendChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="chart-title">Monthly Revenue Growth</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="revenueGrowthChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="chart-title">Revenue vs. Quantity</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="revenueQuantityChart"></canvas>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="card">
-          <div style="font-weight:700; margin-bottom:6px;">Revenue (Historical + Forecast)</div>
-          <div class="chart-box"><canvas id="revenueChart"></canvas></div>
+        <div class="grid charts-2">
+          <div class="card">
+            <div class="chart-title">Cumulative Revenue</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="cumulativeRevenueChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="chart-title">Average Revenue per Unit</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="avgRevenueChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Performance Analysis Tab -->
+      <div id="performance" class="tab-content">
+        <div class="section-title">Performance Analysis</div>
+        <div class="grid charts-2">
+          <div class="card">
+            <div class="chart-title">Year-over-Year Growth</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="yoyChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="chart-title">Price vs. Sales Correlation</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="priceSalesChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Customer Ratings Tab -->
+      <div id="ratings" class="tab-content">
+        <div class="section-title">Customer Ratings</div>
+        <div class="grid charts-2">
+          <div class="card">
+            <div class="chart-title">Rating Trends Over Time</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="ratingTrendChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="chart-title">Rating Distribution</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="ratingDistChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid charts-2">
+          <div class="card">
+            <div class="chart-title">Ratings vs. Sales Performance</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="ratingsSalesChart"></canvas>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // Chart defaults
-    Chart.defaults.font.family = "system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, sans-serif";
+    // Enhanced Chart defaults
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
+    Chart.defaults.font.size = 12;
     Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.padding = 20;
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    Chart.defaults.plugins.tooltip.titleColor = '#ffffff';
+    Chart.defaults.plugins.tooltip.bodyColor = '#ffffff';
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.plugins.tooltip.padding = 12;
 
     // Elements
     const brandEl = document.getElementById('brand');
@@ -141,7 +619,80 @@
     const MAX_DATE = '{{ max_date }}';
 
     // Charts
-    let histChart=null, fcChart=null, seasChart=null, revChart=null;
+    let histChart=null, fcChart=null, seasChart=null, revChart=null, 
+        yoyChart=null, priceSalesChart=null,
+        ratingTrendChart=null, ratingDistChart=null, ratingsSalesChart=null,
+        revenueTrendChart=null, revenueGrowthChart=null, revenueQuantityChart=null,
+        cumulativeRevenueChart=null, avgRevenueChart=null;
+
+    // Tab Management
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const targetTab = button.getAttribute('data-tab');
+        
+        // Remove active class from all buttons and contents
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        tabContents.forEach(content => content.classList.remove('active'));
+        
+        // Add active class to clicked button and corresponding content
+        button.classList.add('active');
+        document.getElementById(targetTab).classList.add('active');
+        
+        // Trigger chart resize to ensure proper rendering when tab becomes visible
+        setTimeout(() => {
+          Chart.helpers.each(Chart.instances, (instance) => {
+            if (instance.chart.canvas.offsetParent !== null) {
+              instance.resize();
+            }
+          });
+        }, 50);
+      });
+    });
+
+    // Enhanced zoom options
+    const getZoomOptions = (enableX = true, enableY = false) => ({
+      zoom: {
+        wheel: { enabled: true, speed: 0.1 },
+        pinch: { enabled: true },
+        mode: enableX && enableY ? 'xy' : enableX ? 'x' : 'y'
+      },
+      pan: {
+        enabled: true,
+        mode: enableX && enableY ? 'xy' : enableX ? 'x' : 'y',
+        threshold: 10
+      }
+    });
+
+    // Color palette
+    const colors = {
+      primary: '#6366f1',
+      secondary: '#8b5cf6',
+      success: '#10b981',
+      warning: '#f59e0b',
+      danger: '#ef4444',
+      info: '#3b82f6',
+      purple: '#a855f7',
+      teal: '#14b8a6'
+    };
+
+    // Data processing for large datasets
+    const processLargeDataset = (labels, values, maxPoints = 100) => {
+      if (labels.length <= maxPoints) return { labels, values };
+      
+      const step = Math.ceil(labels.length / maxPoints);
+      const processedLabels = [];
+      const processedValues = [];
+      
+      for (let i = 0; i < labels.length; i += step) {
+        processedLabels.push(labels[i]);
+        processedValues.push(values[i]);
+      }
+      
+      return { labels: processedLabels, values: processedValues };
+    };
 
     // Defaults for dates
     (function setDefaults(){
@@ -155,10 +706,25 @@
       }
     })();
 
-    // Helpers
-    function showError(msg){ errEl.textContent=msg; errEl.style.display='block'; okEl.style.display='none'; }
-    function showOk(msg){ okEl.textContent=msg; okEl.style.display='block'; errEl.style.display='none'; }
-    function clearMsgs(){ errEl.style.display='none'; okEl.style.display='none'; }
+    // Helper functions
+    function showError(msg){ 
+      errEl.textContent = msg; 
+      errEl.style.display = 'block'; 
+      okEl.style.display = 'none'; 
+      errEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    function showOk(msg){ 
+      okEl.textContent = msg; 
+      okEl.style.display = 'block'; 
+      errEl.style.display = 'none'; 
+    }
+    
+    function clearMsgs(){ 
+      errEl.style.display = 'none'; 
+      okEl.style.display = 'none'; 
+    }
+
     function validateDates(){
       const s=startEl.value, e=endEl.value;
       if (!s || !e) return false;
@@ -167,6 +733,7 @@
       if (MAX_DATE && e > MAX_DATE){ showError(`End date must be ≤ ${MAX_DATE}.`); return false; }
       return true;
     }
+
     function populateSelect(sel, items, placeholder){
       sel.innerHTML='';
       if (items && items.length){
@@ -179,7 +746,7 @@
       }
     }
 
-    // Downsample labels and data to every Nth point
+    // Data processing functions
     function downsampleSeries(labels, values, step) {
       if (step <= 1) return { labels, values };
       const dsL = [], dsV = [];
@@ -189,7 +756,7 @@
       }
       return { labels: dsL, values: dsV };
     }
-    // Aggregate monthly values to quarterly
+
     function toQuarterly(labels, values) {
       const outL = [], outV = [];
       let qSum = 0, currentQ = null;
@@ -211,35 +778,106 @@
       }
       return { labels: outL, values: outV };
     }
-    // Decide presentation mode based on span
+
     function pickScaleMode(labels) {
       if (!labels.length) return { mode: 'monthly', step: 1 };
+      
+      const dataPoints = labels.length;
+      if (dataPoints > 200) return { mode: 'quarterly' };
+      if (dataPoints > 100) return { mode: 'monthly', step: 4 };
+      if (dataPoints > 60) return { mode: 'monthly', step: 2 };
+      
       const startY = Number(labels[0].slice(0,4));
       const endY = Number(labels[labels.length-1].slice(0,4));
       const span = endY - startY + 1;
-      if (span >= 12) return { mode: 'quarterly' };        // 12+ years → quarterly bars
-      if (span >= 6) return { mode: 'monthly', step: 3 };  // 6–11 years → every 3rd month
-      if (span >= 3) return { mode: 'monthly', step: 2 };  // 3–5 years → every 2nd month
+      
+      if (span >= 12) return { mode: 'quarterly' };
+      if (span >= 6) return { mode: 'monthly', step: 3 };
+      if (span >= 3) return { mode: 'monthly', step: 2 };
       return { mode: 'monthly', step: 1 };
     }
-    // Heatmap color scale (purple ramp)
+
     function heatmapColor(value, vmax) {
-      if (!vmax || vmax <= 0) return 'rgba(229,231,235,1)'; // light gray
+      if (!vmax || vmax <= 0) return 'rgba(229,231,235,1)';
       const t = Math.max(0, Math.min(1, value / vmax));
-      // color stops: #ede9fe, #ddd6fe, #c4b5fd, #a78bfa, #7c3aed
       const stops = [
-        [237,233,254],
-        [221,214,254],
-        [196,181,253],
-        [167,139,250],
-        [124, 58,237],
+        [237,233,254], [221,214,254], [196,181,253], [167,139,250], [124, 58,237],
       ];
       const idx = Math.min(stops.length - 1, Math.floor(t * (stops.length - 1)));
       const [r,g,b] = stops[idx];
       return `rgba(${r},${g},${b},1)`;
     }
 
-    // Cascading selects
+    // Common chart options
+    const getCommonChartOptions = (title, hasZoom = true) => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 20,
+            font: { size: 12, weight: '600' }
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          titleColor: '#ffffff',
+          bodyColor: '#ffffff',
+          cornerRadius: 8,
+          padding: 12,
+          displayColors: true,
+          callbacks: {
+            label: function(context) {
+              let label = context.dataset.label || '';
+              if (label) label += ': ';
+              const value = context.parsed.y;
+              if (value >= 1000000) {
+                label += (value / 1000000).toFixed(1) + 'M';
+              } else if (value >= 1000) {
+                label += (value / 1000).toFixed(1) + 'k';
+              } else {
+                label += value.toLocaleString();
+              }
+              return label;
+            }
+          }
+        },
+        ...(hasZoom && { zoom: getZoomOptions(true, false) })
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0, 0, 0, 0.1)', lineWidth: 1 },
+          ticks: {
+            font: { size: 11 },
+            color: '#64748b',
+            padding: 8,
+            callback: function(value) {
+              if (value >= 1000000) return (value / 1000000).toFixed(1) + 'M';
+              if (value >= 1000) return (value / 1000).toFixed(1) + 'k';
+              return value.toLocaleString();
+            }
+          }
+        },
+        x: {
+          grid: { display: false },
+          ticks: {
+            font: { size: 11 },
+            color: '#64748b',
+            maxRotation: 45,
+            autoSkip: true,
+            maxTicksLimit: 12,
+            padding: 8
+          }
+        }
+      }
+    });
+
+    // Event listeners
     brandEl.addEventListener('change', async function(){
       clearMsgs();
       const b=this.value;
@@ -270,40 +908,103 @@
       }catch(e){ showError(e.message); modelEl.innerHTML='<option value="">Error loading models</option>'; modelEl.disabled=true; }
     });
 
-    // Predict
+    // Predict function
     predictBtn.addEventListener('click', async function(){
       clearMsgs();
       const b=brandEl.value, p=productEl.value, m=modelEl.value, s=startEl.value, e=endEl.value;
-      if(!b||!p||!m||!s||!e){ showError('Please select brand, product, model, and both dates.'); return; }
+      if(!b||!p||!m||!s||!e){ showError('Please fill in all required fields.'); return; }
       if(!validateDates()) return;
+      
       predictBtn.disabled=true;
+      predictBtn.textContent='Generating Forecast...';
+      
       try{
-        const resp=await fetch('/api/forecast', {
-          method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
-          body:JSON.stringify({brand:b,product:p,model:m,start_date:s+'-01',end_date:e+'-01'})
-        });
-        const data=await resp.json();
-        if(!resp.ok) throw new Error(data.error||'Failed to get forecast');
-        renderAll(data);
+        const [forecastResponse, ratingsResponse] = await Promise.allSettled([
+          fetch('/api/forecast', {
+            method:'POST', 
+            headers:{'Content-Type':'application/json','Accept':'application/json'},
+            body:JSON.stringify({brand:b,product:p,model:m,start_date:s+'-01',end_date:e+'-01'})
+          }),
+          fetch('/api/ratings', {
+            method:'POST', 
+            headers:{'Content-Type':'application/json','Accept':'application/json'},
+            body:JSON.stringify({brand:b,product:p,model:m,start_date:s+'-01',end_date:e+'-01'})
+          })
+        ]);
+
+        const data = forecastResponse.status === 'fulfilled' && forecastResponse.value.ok 
+          ? await forecastResponse.value.json() 
+          : null;
+        
+        const ratingsData = ratingsResponse.status === 'fulfilled' && ratingsResponse.value.ok 
+          ? await ratingsResponse.value.json() 
+          : null;
+
+        if (!data) throw new Error('Failed to get forecast data');
+
+        renderAll(data, ratingsData);
         resultsEl.style.display='block';
-        showOk('Forecast generated successfully.');
-      }catch(err){ showError(err.message); }
-      finally{ predictBtn.disabled=false; }
+        showOk('All analytics loaded successfully. Use tabs to navigate between different analyses.');
+        
+        setTimeout(() => {
+          resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+        
+      }catch(err){ 
+        showError(err.message || 'An error occurred while generating the forecast.'); 
+      }
+      finally{ 
+        predictBtn.disabled=false; 
+        predictBtn.textContent='Generate Forecast';
+      }
     });
 
-    function renderAll(data){
-      recEl.textContent = data?.recommendation?.message || 'Forecast generated.';
+    function renderAll(data, ratingsData){
+      recEl.textContent = data?.recommendation?.message || 'Forecast analysis completed successfully.';
+      
+      // Render all charts
       renderHistorical(data);
       renderForecast(data);
       renderSeasonality(data?.seasonality||[]);
       renderRevenue(data);
+      
+      // Revenue analytics
+      renderRevenueTrend(data);
+      renderRevenueGrowth(data);
+      renderRevenueQuantity(data);
+      renderCumulativeRevenue(data);
+      renderAvgRevenue(data);
+      
+      // Performance analysis
+      renderYearOverYear(data);
+      renderPriceSalesCorrelation(data);
+      
+      // Ratings analysis
+      if (ratingsData) {
+        renderRatingTrend(ratingsData);
+        renderRatingDistribution(ratingsData);
+        renderRatingsVsSales(ratingsData);
+      } else {
+        renderEmptyRatingCharts();
+      }
     }
 
+    // Chart rendering functions
     function renderHistorical(data){
       const ctx=document.getElementById('historicalChart').getContext('2d');
       if(histChart) histChart.destroy();
+      
       const labels=data?.history?.labels||[];
       const values=data?.history?.values||[];
+      
+      if (!labels.length) {
+        histChart = new Chart(ctx, { 
+          type: 'line', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Historical Sales')
+        });
+        return;
+      }
 
       const mode = pickScaleMode(labels);
       let L = labels, V = values, type='line', datasets;
@@ -320,65 +1021,121 @@
         const ma = (arr, w) => arr.map((_,i)=> i+1<w ? null : Math.round(arr.slice(i-w+1,i+1).reduce((a,b)=>a+Number(b||0),0)/w));
         const ma3 = ma(V,3), ma6 = ma(V,6), ma12 = ma(V,12);
         datasets = [
-          { label:'Historical', data:V, borderColor:'#7c3aed', backgroundColor:'rgba(124,58,237,0.12)', fill:true, tension:0.35 },
-          { label:'MA(3)', data:ma3, borderColor:'#10b981', borderDash:[6,4], tension:0.35 },
-          { label:'MA(6)', data:ma6, borderColor:'#f59e0b', borderDash:[6,4], tension:0.35 },
-          { label:'MA(12)', data:ma12, borderColor:'#ef4444', borderDash:[6,4], tension:0.35 }
+          { 
+            label:'Historical Sales', 
+            data:V, 
+            borderColor: colors.primary, 
+            backgroundColor: colors.primary + '20', 
+            fill: true, 
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: L.length > 50 ? 0 : 3,
+            pointHoverRadius: 6
+          },
+          { 
+            label:'3-Month Average', 
+            data:ma3, 
+            borderColor: colors.success, 
+            borderDash:[8,4], 
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 0
+          },
+          { 
+            label:'6-Month Average', 
+            data:ma6, 
+            borderColor: colors.warning, 
+            borderDash:[8,4], 
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 0
+          },
+          { 
+            label:'12-Month Average', 
+            data:ma12, 
+            borderColor: colors.danger, 
+            borderDash:[8,4], 
+            tension: 0.4,
+            borderWidth: 2,
+            pointRadius: 0
+          }
         ];
       } else {
         datasets = [
-          { label:'Historical (Quarterly)', data:V, backgroundColor:'rgba(124,58,237,0.7)', borderColor:'#7c3aed' }
+          { 
+            label:'Historical Sales (Quarterly)', 
+            data:V, 
+            backgroundColor: colors.primary + 'CC', 
+            borderColor: colors.primary,
+            borderWidth: 2
+          }
         ];
       }
 
       histChart = new Chart(ctx, {
         type,
-        data: { labels:L, datasets },
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          interaction:{ intersect:false, mode:'index' },
-          scales:{ y:{ beginAtZero:true }, x:{ ticks:{ maxRotation:45, autoSkip:true, maxTicksLimit:12 } } },
-          plugins:{
-            legend:{ labels:{ usePointStyle:true} },
-            zoom:{
-              pan:{ enabled:true, mode:'x' },
-              zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'x' }
-            }
-          }
-        }
+        data: { labels: L, datasets },
+        options: getCommonChartOptions('Historical Sales Analysis')
       });
     }
 
     function renderForecast(data){
       const ctx=document.getElementById('forecastChart').getContext('2d');
       if(fcChart) fcChart.destroy();
+      
       const labels=data?.forecast?.labels||[];
       const vals=data?.forecast?.values||[];
       const highs=data?.forecast?.highs||[];
       const lows=data?.forecast?.lows||[];
+
+      if (!labels.length) {
+        fcChart = new Chart(ctx, { 
+          type: 'line', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Forecast')
+        });
+        return;
+      }
 
       fcChart = new Chart(ctx, {
         type:'line',
         data:{
           labels,
           datasets:[
-            { label:'Confidence Upper', data:highs, borderColor:'rgba(167,139,250,0.8)', backgroundColor:'rgba(167,139,250,0.15)', fill:'+1', pointRadius:0, tension:0.35 },
-            { label:'Confidence Lower', data:lows,  borderColor:'rgba(167,139,250,0.8)', backgroundColor:'rgba(167,139,250,0.15)', fill:'-1', pointRadius:0, tension:0.35 },
-            { label:'Forecast', data:vals, borderColor:'#2563eb', backgroundColor:'rgba(37,99,235,0.08)', fill:false, tension:0.35 }
+            { 
+              label:'Upper Confidence', 
+              data:highs, 
+              borderColor: colors.secondary + '80', 
+              backgroundColor: colors.secondary + '20', 
+              fill:'+1', 
+              pointRadius:0, 
+              tension:0.4,
+              borderWidth: 2
+            },
+            { 
+              label:'Lower Confidence', 
+              data:lows,  
+              borderColor: colors.secondary + '80', 
+              backgroundColor: colors.secondary + '20', 
+              fill:'-1', 
+              pointRadius:0, 
+              tension:0.4,
+              borderWidth: 2
+            },
+            { 
+              label:'Forecast', 
+              data:vals, 
+              borderColor: colors.info, 
+              backgroundColor: colors.info + '20', 
+              fill:false, 
+              tension:0.4,
+              borderWidth: 3,
+              pointRadius: 4,
+              pointHoverRadius: 8
+            }
           ]
         },
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          interaction:{ intersect:false, mode:'index' },
-          scales:{ y:{ beginAtZero:true }, x:{ ticks:{ maxRotation:45, autoSkip:true } } },
-          plugins:{
-            legend:{ labels:{ usePointStyle:true } },
-            zoom:{
-              pan:{ enabled:true, mode:'x' },
-              zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'x' }
-            }
-          }
-        }
+        options: getCommonChartOptions('Sales Forecast')
       });
     }
 
@@ -387,28 +1144,31 @@
       if(seasChart) seasChart.destroy();
 
       if (!Array.isArray(heat) || !heat.length) {
-        seasChart = new Chart(ctx, { type:'bar', data:{ labels:[], datasets:[] }, options:{ responsive:true, maintainAspectRatio:false }});
+        seasChart = new Chart(ctx, { 
+          type:'bar', 
+          data:{ labels:[], datasets:[] }, 
+          options: getCommonChartOptions('Seasonality', false)
+        });
         return;
       }
 
       const years = [...new Set(heat.map(h=>h.year))].sort((a,b)=>a-b);
-      let vmax = 0;
-      heat.forEach(h => { if (h.value > vmax) vmax = h.value; });
+      let vmax = Math.max(...heat.map(h => h.value));
 
       const yIndex = (y) => years.indexOf(y);
       const matrixData = heat.map(h => ({
         x: h.month - 1,
         y: yIndex(h.year),
         v: h.value,
-        w: 18,
-        h: 18
+        w: Math.max(18, Math.min(30, 400 / Math.max(12, years.length))),
+        h: Math.max(18, Math.min(30, 400 / Math.max(12, years.length)))
       }));
 
       seasChart = new Chart(ctx, {
         type: 'matrix',
         data: {
           datasets: [{
-            label: 'Seasonality',
+            label: 'Sales Volume',
             data: matrixData,
             backgroundColor: ctx => heatmapColor(ctx.raw.v, vmax),
             borderColor: 'rgba(255,255,255,0.8)',
@@ -423,16 +1183,22 @@
           plugins: {
             legend: { display: false },
             tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: '#ffffff',
+              bodyColor: '#ffffff',
+              cornerRadius: 8,
+              padding: 12,
               callbacks: {
                 title: () => '',
                 label: ctx => {
                   const mIdx = ctx.raw.x;
                   const year = years[ctx.raw.y];
                   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                  return `${monthNames[mIdx]} ${year}: ${ctx.raw.v.toLocaleString()}`;
+                  return `${monthNames[mIdx]} ${year}: ${ctx.raw.v.toLocaleString()} units`;
                 }
               }
-            }
+            },
+            zoom: getZoomOptions(true, true)
           },
           scales: {
             x: {
@@ -443,7 +1209,9 @@
               ticks: {
                 callback: (v) => ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][v],
                 maxRotation: 0,
-                autoSkip: false
+                autoSkip: false,
+                font: { size: 11 },
+                color: '#64748b'
               },
               grid: { display: false }
             },
@@ -451,7 +1219,12 @@
               type: 'linear',
               min: -0.5,
               max: years.length - 0.5,
-              ticks: { callback: (v) => years[v] ?? '', autoSkip: false },
+              ticks: { 
+                callback: (v) => years[v] ?? '', 
+                autoSkip: false,
+                font: { size: 11 },
+                color: '#64748b'
+              },
               reverse: true,
               grid: { display: false }
             }
@@ -463,10 +1236,20 @@
     function renderRevenue(data){
       const ctx=document.getElementById('revenueChart').getContext('2d');
       if(revChart) revChart.destroy();
+      
       const histLabels=data?.history?.labels||[];
       const histRev=data?.history?.revenue||[];
       const fLabels=data?.forecast?.labels||[];
       const fRev=data?.forecast?.revenue||[];
+
+      if (!histLabels.length && !fLabels.length) {
+        revChart = new Chart(ctx, { 
+          type: 'bar', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Revenue')
+        });
+        return;
+      }
 
       const mode = pickScaleMode(histLabels);
       let Lh=histLabels, Rh=histRev, type='bar';
@@ -484,25 +1267,524 @@
         data:{
           labels: [...Lh, ...fLabels],
           datasets:[
-            { label:'Historical Revenue', data: Rh.concat(Array(fLabels.length).fill(null)), backgroundColor:'rgba(16,185,129,0.7)' },
-            { label:'Forecast Revenue', data: Array(Lh.length).fill(null).concat(fRev), backgroundColor:'rgba(37,99,235,0.7)' }
+            { 
+              label:'Historical Revenue', 
+              data: Rh.concat(Array(fLabels.length).fill(null)), 
+              backgroundColor: colors.success + 'CC',
+              borderColor: colors.success,
+              borderWidth: 2
+            },
+            { 
+              label:'Forecast Revenue', 
+              data: Array(Lh.length).fill(null).concat(fRev), 
+              backgroundColor: colors.info + 'CC',
+              borderColor: colors.info,
+              borderWidth: 2
+            }
           ]
         },
-        options:{
-          responsive:true, maintainAspectRatio:false,
-          scales:{ 
-            y:{ beginAtZero:true, ticks:{ callback:(v)=> v>=1000000? (v/1000000)+'M' : v>=1000? (v/1000)+'k' : v } }, 
-            x:{ ticks:{ maxRotation:45, autoSkip:true, maxTicksLimit:12 } } 
-          },
-          plugins:{
-            legend:{ labels:{ usePointStyle:true } },
-            zoom:{
-              pan:{ enabled:true, mode:'x' },
-              zoom:{ wheel:{ enabled:true }, pinch:{ enabled:true }, mode:'x' }
-            }
-          }
-        }
+        options: getCommonChartOptions('Revenue Analysis')
       });
+    }
+
+    function renderRevenueTrend(data){
+      const ctx=document.getElementById('revenueTrendChart').getContext('2d');
+      if(revenueTrendChart) revenueTrendChart.destroy();
+      
+      const labels = data?.history?.labels || [];
+      const revenues = data?.history?.revenue || [];
+      
+      if (!labels.length) {
+        revenueTrendChart = new Chart(ctx, { 
+          type: 'line', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Revenue Trend')
+        });
+        return;
+      }
+      
+      const processed = processLargeDataset(labels, revenues);
+      const ma3 = processed.values.map((_,i)=> i+2<processed.values.length ? Math.round(processed.values.slice(i,i+3).reduce((a,b)=>a+Number(b||0),0)/3) : null);
+      const ma6 = processed.values.map((_,i)=> i+5<processed.values.length ? Math.round(processed.values.slice(i,i+6).reduce((a,b)=>a+Number(b||0),0)/6) : null);
+
+      revenueTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: processed.labels,
+          datasets: [
+            { 
+              label: 'Revenue', 
+              data: processed.values, 
+              borderColor: colors.success, 
+              backgroundColor: colors.success + '20', 
+              fill: true, 
+              tension: 0.4,
+              borderWidth: 3,
+              pointRadius: processed.labels.length > 50 ? 0 : 3
+            },
+            { 
+              label: '3-Period Average', 
+              data: ma3, 
+              borderColor: colors.warning, 
+              borderDash: [8,4], 
+              tension: 0.4,
+              borderWidth: 2,
+              pointRadius: 0
+            },
+            { 
+              label: '6-Period Average', 
+              data: ma6, 
+              borderColor: colors.danger, 
+              borderDash: [8,4], 
+              tension: 0.4,
+              borderWidth: 2,
+              pointRadius: 0
+            }
+          ]
+        },
+        options: getCommonChartOptions('Revenue Trend Analysis')
+      });
+    }
+
+    function renderRevenueGrowth(data){
+      const ctx=document.getElementById('revenueGrowthChart').getContext('2d');
+      if(revenueGrowthChart) revenueGrowthChart.destroy();
+      
+      const labels = data?.history?.labels || [];
+      const revenues = data?.history?.revenue || [];
+      
+      if (labels.length < 2) {
+        revenueGrowthChart = new Chart(ctx, { 
+          type: 'bar', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Revenue Growth')
+        });
+        return;
+      }
+      
+      const growthData = [];
+      const growthLabels = [];
+      
+      for (let i = 1; i < revenues.length; i++) {
+        const current = revenues[i] || 0;
+        const previous = revenues[i-1] || 0;
+        if (previous > 0) {
+          const growth = ((current - previous) / previous) * 100;
+          growthData.push(growth);
+          growthLabels.push(labels[i]);
+        }
+      }
+
+      const processed = processLargeDataset(growthLabels, growthData);
+      const options = getCommonChartOptions('Monthly Revenue Growth');
+      options.plugins.tooltip.callbacks.label = function(context) {
+        return `Growth: ${context.parsed.y.toFixed(1)}%`;
+      };
+      options.plugins.legend.display = false;
+
+      revenueGrowthChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: processed.labels,
+          datasets: [{
+            label: 'MoM Growth %',
+            data: processed.values,
+            backgroundColor: processed.values.map(v => v >= 0 ? colors.success + 'CC' : colors.danger + 'CC'),
+            borderColor: processed.values.map(v => v >= 0 ? colors.success : colors.danger),
+            borderWidth: 2
+          }]
+        },
+        options: options
+      });
+    }
+
+    function renderRevenueQuantity(data){
+      const ctx=document.getElementById('revenueQuantityChart').getContext('2d');
+      if(revenueQuantityChart) revenueQuantityChart.destroy();
+      
+      const quantities = data?.history?.values || [];
+      const revenues = data?.history?.revenue || [];
+      
+      const scatterData = quantities.map((qty, i) => ({
+        x: qty || 0,
+        y: revenues[i] || 0
+      })).filter(point => point.x > 0 && point.y > 0);
+
+      if (!scatterData.length) {
+        revenueQuantityChart = new Chart(ctx, { 
+          type: 'scatter', 
+          data: { datasets: [] }, 
+          options: getCommonChartOptions('Revenue vs Quantity')
+        });
+        return;
+      }
+
+      const options = getCommonChartOptions('Revenue vs Quantity Correlation');
+      options.plugins.zoom = getZoomOptions(true, true);
+      options.scales.x.title = { display: true, text: 'Quantity Sold', font: { weight: 'bold' } };
+      options.scales.y.title = { display: true, text: 'Revenue ($)', font: { weight: 'bold' } };
+
+      revenueQuantityChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Revenue vs Quantity',
+            data: scatterData,
+            backgroundColor: colors.success + '99',
+            borderColor: colors.success,
+            borderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 8
+          }]
+        },
+        options: options
+      });
+    }
+
+    function renderCumulativeRevenue(data){
+      const ctx=document.getElementById('cumulativeRevenueChart').getContext('2d');
+      if(cumulativeRevenueChart) cumulativeRevenueChart.destroy();
+      
+      const labels = data?.history?.labels || [];
+      const revenues = data?.history?.revenue || [];
+      
+      if (!labels.length) {
+        cumulativeRevenueChart = new Chart(ctx, { 
+          type: 'line', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Cumulative Revenue')
+        });
+        return;
+      }
+      
+      let cumulative = 0;
+      const cumulativeData = revenues.map(rev => {
+        cumulative += (rev || 0);
+        return cumulative;
+      });
+
+      const processed = processLargeDataset(labels, cumulativeData);
+
+      cumulativeRevenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: processed.labels,
+          datasets: [{
+            label: 'Cumulative Revenue',
+            data: processed.values,
+            borderColor: colors.purple,
+            backgroundColor: colors.purple + '20',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: processed.labels.length > 50 ? 0 : 3,
+            pointHoverRadius: 6
+          }]
+        },
+        options: getCommonChartOptions('Cumulative Revenue')
+      });
+    }
+
+    function renderAvgRevenue(data){
+      const ctx=document.getElementById('avgRevenueChart').getContext('2d');
+      if(avgRevenueChart) avgRevenueChart.destroy();
+      
+      const labels = data?.history?.labels || [];
+      const quantities = data?.history?.values || [];
+      const revenues = data?.history?.revenue || [];
+      
+      if (!labels.length) {
+        avgRevenueChart = new Chart(ctx, { 
+          type: 'line', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Average Revenue per Unit')
+        });
+        return;
+      }
+      
+      const avgRevenueData = quantities.map((qty, i) => {
+        const rev = revenues[i] || 0;
+        return qty > 0 ? rev / qty : 0;
+      });
+
+      const processed = processLargeDataset(labels, avgRevenueData);
+      const options = getCommonChartOptions('Average Revenue per Unit');
+      options.scales.y.title = { display: true, text: 'Revenue per Unit ($)', font: { weight: 'bold' } };
+
+      avgRevenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: processed.labels,
+          datasets: [{
+            label: 'Avg Revenue per Unit',
+            data: processed.values,
+            borderColor: colors.warning,
+            backgroundColor: colors.warning + '20',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: processed.labels.length > 50 ? 0 : 3,
+            pointHoverRadius: 6
+          }]
+        },
+        options: options
+      });
+    }
+
+    function renderYearOverYear(data){
+      const ctx=document.getElementById('yoyChart').getContext('2d');
+      if(yoyChart) yoyChart.destroy();
+      
+      const labels = data?.history?.labels || [];
+      const values = data?.history?.values || [];
+      
+      if (labels.length < 12) {
+        const options = getCommonChartOptions('Year-over-Year Growth');
+        options.plugins.title = { display: true, text: 'Insufficient data for YoY analysis (need 12+ months)' };
+        yoyChart = new Chart(ctx, { 
+          type: 'line', 
+          data: { labels: [], datasets: [] }, 
+          options: options
+        });
+        return;
+      }
+      
+      const yoyGrowth = [];
+      const yoyLabels = [];
+      
+      for (let i = 12; i < labels.length; i++) {
+        const currentValue = values[i] || 0;
+        const previousYearValue = values[i - 12] || 0;
+        if (previousYearValue > 0) {
+          const growth = ((currentValue - previousYearValue) / previousYearValue) * 100;
+          yoyGrowth.push(growth);
+          yoyLabels.push(labels[i]);
+        }
+      }
+
+      const processed = processLargeDataset(yoyLabels, yoyGrowth);
+      const options = getCommonChartOptions('Year-over-Year Growth');
+      options.scales.y.title = { display: true, text: 'Growth (%)', font: { weight: 'bold' } };
+      options.plugins.tooltip.callbacks.label = function(context) {
+        return `YoY Growth: ${context.parsed.y.toFixed(1)}%`;
+      };
+
+      yoyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: processed.labels,
+          datasets: [{
+            label: 'YoY Growth %',
+            data: processed.values,
+            borderColor: colors.success,
+            backgroundColor: colors.success + '20',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: processed.labels.length > 50 ? 0 : 4,
+            pointHoverRadius: 8
+          }]
+        },
+        options: options
+      });
+    }
+
+    function renderPriceSalesCorrelation(data){
+      const ctx=document.getElementById('priceSalesChart').getContext('2d');
+      if(priceSalesChart) priceSalesChart.destroy();
+      
+      const labels = data?.history?.labels || [];
+      const quantities = data?.history?.values || [];
+      const revenues = data?.history?.revenue || [];
+      
+      const scatterData = [];
+      for (let i = 0; i < labels.length; i++) {
+        const qty = quantities[i] || 0;
+        const rev = revenues[i] || 0;
+        if (qty > 0 && rev > 0) {
+          const avgPrice = rev / qty;
+          scatterData.push({ x: avgPrice, y: qty });
+        }
+      }
+
+      if (!scatterData.length) {
+        priceSalesChart = new Chart(ctx, { 
+          type: 'scatter', 
+          data: { datasets: [] }, 
+          options: getCommonChartOptions('Price vs Sales')
+        });
+        return;
+      }
+
+      const options = getCommonChartOptions('Price vs Sales Correlation');
+      options.plugins.zoom = getZoomOptions(true, true);
+      options.scales.x.title = { display: true, text: 'Average Unit Price ($)', font: { weight: 'bold' } };
+      options.scales.y.title = { display: true, text: 'Quantity Sold', font: { weight: 'bold' } };
+
+      priceSalesChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Price vs Sales',
+            data: scatterData,
+            backgroundColor: colors.info + '99',
+            borderColor: colors.info,
+            borderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 10
+          }]
+        },
+        options: options
+      });
+    }
+
+    function renderRatingTrend(ratingsData){
+      const ctx=document.getElementById('ratingTrendChart').getContext('2d');
+      if(ratingTrendChart) ratingTrendChart.destroy();
+      
+      const trendData = ratingsData?.average_rating_trend || { labels: [], values: [] };
+
+      if (!trendData.labels.length) {
+        ratingTrendChart = new Chart(ctx, { 
+          type: 'line', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Rating Trend')
+        });
+        return;
+      }
+
+      const processed = processLargeDataset(trendData.labels, trendData.values);
+      const options = getCommonChartOptions('Rating Trends Over Time');
+      options.scales.y.min = 1;
+      options.scales.y.max = 5;
+      options.scales.y.title = { display: true, text: 'Rating (1-5)', font: { weight: 'bold' } };
+
+      ratingTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: processed.labels,
+          datasets: [{
+            label: 'Average Rating',
+            data: processed.values,
+            borderColor: colors.warning,
+            backgroundColor: colors.warning + '20',
+            fill: true,
+            tension: 0.4,
+            borderWidth: 3,
+            pointRadius: processed.labels.length > 50 ? 0 : 4,
+            pointHoverRadius: 8
+          }]
+        },
+        options: options
+      });
+    }
+
+    function renderRatingDistribution(ratingsData){
+      const ctx=document.getElementById('ratingDistChart').getContext('2d');
+      if(ratingDistChart) ratingDistChart.destroy();
+      
+      const distData = ratingsData?.rating_distribution || { bins: [], values: [] };
+
+      if (!distData.bins.length) {
+        ratingDistChart = new Chart(ctx, { 
+          type: 'bar', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Rating Distribution')
+        });
+        return;
+      }
+
+      const options = getCommonChartOptions('Rating Distribution');
+      options.plugins.legend.display = false;
+
+      ratingDistChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: distData.bins,
+          datasets: [{
+            label: 'Frequency',
+            data: distData.values,
+            backgroundColor: [
+              colors.danger + 'CC', 
+              colors.warning + 'CC', 
+              '#eab308CC', 
+              colors.success + 'CC', 
+              '#059669CC'
+            ],
+            borderColor: [
+              colors.danger, 
+              colors.warning, 
+              '#eab308', 
+              colors.success, 
+              '#059669'
+            ],
+            borderWidth: 2
+          }]
+        },
+        options: options
+      });
+    }
+
+    function renderRatingsVsSales(ratingsData){
+      const ctx=document.getElementById('ratingsSalesChart').getContext('2d');
+      if(ratingsSalesChart) ratingsSalesChart.destroy();
+      
+      const scatterData = ratingsData?.ratings_vs_sales_scatter || { ratings: [], quantity_sold: [] };
+      const chartData = scatterData.ratings.map((rating, i) => ({
+        x: rating,
+        y: scatterData.quantity_sold[i] || 0
+      })).filter(point => point.x > 0 && point.y >= 0);
+
+      if (!chartData.length) {
+        ratingsSalesChart = new Chart(ctx, { 
+          type: 'scatter', 
+          data: { datasets: [] }, 
+          options: getCommonChartOptions('Ratings vs Sales')
+        });
+        return;
+      }
+
+      const options = getCommonChartOptions('Ratings vs Sales Performance');
+      options.plugins.zoom = getZoomOptions(true, true);
+      options.scales.x.title = { display: true, text: 'Average Rating (1-5)', font: { weight: 'bold' } };
+      options.scales.y.title = { display: true, text: 'Quantity Sold', font: { weight: 'bold' } };
+      options.scales.x.min = 1;
+      options.scales.x.max = 5;
+
+      ratingsSalesChart = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: [{
+            label: 'Ratings vs Sales',
+            data: chartData,
+            backgroundColor: colors.warning + '99',
+            borderColor: colors.warning,
+            borderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 10
+          }]
+        },
+        options: options
+      });
+    }
+
+    function renderEmptyRatingCharts(){
+      const emptyOptions = { 
+        ...getCommonChartOptions('No Data Available'),
+        plugins: {
+          ...getCommonChartOptions('No Data Available').plugins,
+          title: { display: true, text: 'No rating data available for selected criteria' }
+        }
+      };
+      const emptyData = { labels: [], datasets: [] };
+      
+      if(ratingTrendChart) ratingTrendChart.destroy();
+      if(ratingDistChart) ratingDistChart.destroy();
+      if(ratingsSalesChart) ratingsSalesChart.destroy();
+      
+      ratingTrendChart = new Chart(document.getElementById('ratingTrendChart'), { type: 'line', data: emptyData, options: emptyOptions });
+      ratingDistChart = new Chart(document.getElementById('ratingDistChart'), { type: 'bar', data: emptyData, options: emptyOptions });
+      ratingsSalesChart = new Chart(document.getElementById('ratingsSalesChart'), { type: 'scatter', data: emptyData, options: emptyOptions });
     }
   </script>
 </body>

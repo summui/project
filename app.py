@@ -45,16 +45,16 @@ app = Flask(__name__)
 def load_sales_data():
     # Defensive: ensure we have objects
     if client is None or db is None or collection is None:
-        return pd.DataFrame(columns=['Brand','Product_Name','Model','timestamp','Quantity_Sold','Unit_Price','Revenue','Year','Month','Product_ID'])
+        return pd.DataFrame(columns=['Brand','Product_Name','Model','timestamp','Quantity_Sold','Unit_Price','Revenue','Year','Month','Product_ID','Rating'])
     records = list(collection.find({}))
     if not records:
-        return pd.DataFrame(columns=['Brand','Product_Name','Model','timestamp','Quantity_Sold','Unit_Price','Revenue','Year','Month','Product_ID'])
+        return pd.DataFrame(columns=['Brand','Product_Name','Model','timestamp','Quantity_Sold','Unit_Price','Revenue','Year','Month','Product_ID','Rating'])
     df = pd.DataFrame(records)
 
     # Ensure timestamp and numeric fields
     if 'timestamp' in df.columns:
         df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
-    for col in ['Quantity_Sold','Unit_Price','Revenue','Year']:
+    for col in ['Quantity_Sold','Unit_Price','Revenue','Year','Rating']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
     # Month can be string; keep as-is
@@ -79,10 +79,11 @@ def aggregate_monthly(df_sub):
     # Aggregate monthly Quantity and Unit Price, compute Revenue proxy
     monthly = df_sub.resample('MS', on='timestamp').agg({
         'Quantity_Sold': 'sum',
-        'Unit_Price': 'mean'
+        'Unit_Price': 'mean',
+        'Rating': 'mean'  # Added for ratings aggregation
     }).reset_index()
     monthly['Revenue'] = (monthly['Quantity_Sold'].fillna(0) * monthly['Unit_Price'].fillna(0)).astype(float)
-    return monthly[['timestamp', 'Quantity_Sold', 'Revenue']]
+    return monthly[['timestamp', 'Quantity_Sold', 'Revenue', 'Rating']]
 
 def build_seasonality(df_sub):
     tmp = df_sub.copy()
@@ -97,6 +98,68 @@ def build_seasonality(df_sub):
         for m in range(1, 12+1):
             heat.append({'year': int(yr), 'month': int(m), 'value': int(row.get(m, 0))})
     return heat
+
+# ------------- New Utilities for Ratings Graphs -------------
+
+def average_rating_trend(df_sub):
+    monthly = aggregate_monthly(df_sub)
+    return {
+        'labels': monthly['timestamp'].dt.strftime('%Y-%m').tolist(),
+        'values': monthly['Rating'].fillna(0).astype(float).tolist()
+    }
+
+def rating_distribution(df_sub):
+    ratings = df_sub['Rating'].dropna().astype(int)
+    hist, bins = np.histogram(ratings, bins=range(1, 7))  # Assuming ratings 1-5
+    return {
+        'bins': [f"{i}-{i+1}" for i in range(1, 6)],
+        'values': hist.tolist()
+    }
+
+def ratings_vs_sales_scatter(df_sub):
+    grouped = df_sub.groupby('Product_ID').agg({
+        'Rating': 'mean',
+        'Quantity_Sold': 'sum',
+        'Revenue': 'sum'
+    }).reset_index()
+    return {
+        'ratings': grouped['Rating'].tolist(),
+        'quantity_sold': grouped['Quantity_Sold'].tolist(),
+        'revenue': grouped['Revenue'].tolist()
+    }
+
+def top_rated_products(df_sub):
+    grouped = df_sub.groupby(['Brand', 'Product_Name', 'Model']).agg({
+        'Rating': 'mean',
+        'Quantity_Sold': 'count'  # For weighting if needed
+    }).reset_index()
+    grouped = grouped.sort_values('Rating', ascending=False).head(10)
+    labels = grouped.apply(lambda row: f"{row['Brand']} {row['Product_Name']} ({row['Model']})", axis=1).tolist()
+    return {
+        'labels': labels,
+        'values': grouped['Rating'].tolist()
+    }
+
+def rating_heatmap_by_category(df_sub):
+    tmp = df_sub.copy()
+    tmp['Year'] = tmp['timestamp'].dt.year
+    pivot = tmp.pivot_table(index='Brand', columns='Year', values='Rating', aggfunc='mean', fill_value=0)
+    heat = []
+    for brand, row in pivot.iterrows():
+        for yr in pivot.columns:
+            heat.append({'brand': brand, 'year': int(yr), 'value': float(row[yr])})
+    return heat
+
+def sentiment_breakdown(df_sub):
+    ratings = df_sub['Rating'].dropna().astype(int)
+    positive = (ratings >= 4).sum()
+    neutral = (ratings == 3).sum()
+    negative = (ratings <= 2).sum()
+    total = positive + neutral + negative
+    return {
+        'labels': ['Positive', 'Neutral', 'Negative'],
+        'values': [positive / total * 100 if total else 0, neutral / total * 100 if total else 0, negative / total * 100 if total else 0]
+    }
 
 # ------------- Forecast Models -------------
 
@@ -366,6 +429,52 @@ def model_comparison():
 
         return jsonify({'models': out})
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# ------------- New Route for Ratings Graphs -------------
+
+@app.route('/api/ratings', methods=['POST'])
+def ratings_api():
+    global df
+    try:
+        # Reload latest data each time
+        df = load_sales_data()
+
+        data = request.get_json() or {}
+        for k in ['brand', 'product', 'model', 'start_date', 'end_date']:
+            if not data.get(k):
+                return jsonify({'error': f'Missing field: {k}'}), 400
+
+        brand = str(data['brand'])
+        product = str(data['product'])
+        model_name = str(data['model'])
+        start_date = pd.to_datetime(data['start_date'], errors='coerce')
+        end_date = pd.to_datetime(data['end_date'], errors='coerce')
+        if pd.isna(start_date) or pd.isna(end_date):
+            return jsonify({'error': 'Invalid dates'}), 400
+
+        sub = df[
+            (df['Brand'].astype(str) == brand) &
+            (df['Product_Name'].astype(str) == product) &
+            (df['Model'].astype(str) == model_name) &
+            (df['timestamp'] >= start_date) &
+            (df['timestamp'] <= end_date)
+        ].copy()
+
+        if sub.empty or sub['Rating'].dropna().empty:
+            return jsonify({'error': 'No ratings data found for the selected criteria.'}), 400
+
+        response = {
+            'average_rating_trend': average_rating_trend(sub),
+            'rating_distribution': rating_distribution(sub),
+            'ratings_vs_sales_scatter': ratings_vs_sales_scatter(sub),
+            'top_rated_products': top_rated_products(sub),
+            'rating_heatmap': rating_heatmap_by_category(sub),
+            'sentiment_breakdown': sentiment_breakdown(sub)
+        }
+        return jsonify(response)
+    except Exception as e:
+        logger.exception("ratings_api error")
         return jsonify({'error': str(e)}), 500
 
 # ---------------- Main ----------------
