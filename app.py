@@ -10,6 +10,10 @@ from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from statsmodels.tsa.arima.model import ARIMA
 from prophet import Prophet
 from sklearn.metrics import mean_squared_error
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import joblib
 
 warnings.filterwarnings("ignore")
 load_dotenv()
@@ -34,22 +38,29 @@ if not MONGODB_URI or not DB_NAME or not COLLECTION_NAME:
     raise RuntimeError("Missing MongoDB configuration. Set MONGODB_URI, DB_NAME, and COLLECTION_NAME in environment.")
 
 client = MongoClient(MONGODB_URI)
-# Do NOT use "if db" (truthy check) on PyMongo 4 objects
 db = client[DB_NAME]
 collection = db[COLLECTION_NAME]
 
 app = Flask(__name__)
 
+# Global variables
+df = pd.DataFrame()
+clf = None
+data_version = 0  # Track data changes
+
 # ---------------- Data Loading ----------------
 
 def load_sales_data():
-    # Defensive: ensure we have objects
+    global data_version
     if client is None or db is None or collection is None:
         return pd.DataFrame(columns=['Brand','Product_Name','Model','timestamp','Quantity_Sold','Unit_Price','Revenue','Year','Month','Product_ID','Rating'])
+    
     records = list(collection.find({}))
     if not records:
         return pd.DataFrame(columns=['Brand','Product_Name','Model','timestamp','Quantity_Sold','Unit_Price','Revenue','Year','Month','Product_ID','Rating'])
+    
     df = pd.DataFrame(records)
+    data_version += 1  # Increment version when data changes
 
     # Ensure timestamp and numeric fields
     if 'timestamp' in df.columns:
@@ -57,9 +68,9 @@ def load_sales_data():
     for col in ['Quantity_Sold','Unit_Price','Revenue','Year','Rating']:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors='coerce')
-    # Month can be string; keep as-is
     return df
 
+# Load initial data
 df = load_sales_data()
 
 if not df.empty and 'timestamp' in df.columns:
@@ -95,7 +106,7 @@ def build_seasonality(df_sub):
     pivot = tmp.pivot_table(index='Year', columns='MonthNum', values='Quantity_Sold', aggfunc='sum', fill_value=0)
     heat = []
     for yr, row in pivot.iterrows():
-        for m in range(1, 12+1):
+        for m in range(1, 13):
             heat.append({'year': int(yr), 'month': int(m), 'value': int(row.get(m, 0))})
     return heat
 
@@ -110,6 +121,8 @@ def average_rating_trend(df_sub):
 
 def rating_distribution(df_sub):
     ratings = df_sub['Rating'].dropna().astype(int)
+    if len(ratings) == 0:
+        return {'bins': [], 'values': []}
     hist, bins = np.histogram(ratings, bins=range(1, 7))  # Assuming ratings 1-5
     return {
         'bins': [f"{i}-{i+1}" for i in range(1, 6)],
@@ -117,15 +130,18 @@ def rating_distribution(df_sub):
     }
 
 def ratings_vs_sales_scatter(df_sub):
+    if 'Product_ID' not in df_sub.columns:
+        return {'ratings': [], 'quantity_sold': [], 'revenue': []}
+    
     grouped = df_sub.groupby('Product_ID').agg({
         'Rating': 'mean',
         'Quantity_Sold': 'sum',
         'Revenue': 'sum'
     }).reset_index()
     return {
-        'ratings': grouped['Rating'].tolist(),
-        'quantity_sold': grouped['Quantity_Sold'].tolist(),
-        'revenue': grouped['Revenue'].tolist()
+        'ratings': grouped['Rating'].fillna(0).tolist(),
+        'quantity_sold': grouped['Quantity_Sold'].fillna(0).tolist(),
+        'revenue': grouped['Revenue'].fillna(0).tolist()
     }
 
 def top_rated_products(df_sub):
@@ -137,7 +153,7 @@ def top_rated_products(df_sub):
     labels = grouped.apply(lambda row: f"{row['Brand']} {row['Product_Name']} ({row['Model']})", axis=1).tolist()
     return {
         'labels': labels,
-        'values': grouped['Rating'].tolist()
+        'values': grouped['Rating'].fillna(0).tolist()
     }
 
 def rating_heatmap_by_category(df_sub):
@@ -152,14 +168,157 @@ def rating_heatmap_by_category(df_sub):
 
 def sentiment_breakdown(df_sub):
     ratings = df_sub['Rating'].dropna().astype(int)
+    if len(ratings) == 0:
+        return {'labels': ['Positive', 'Neutral', 'Negative'], 'values': [0, 0, 0]}
+    
     positive = (ratings >= 4).sum()
     neutral = (ratings == 3).sum()
     negative = (ratings <= 2).sum()
     total = positive + neutral + negative
     return {
         'labels': ['Positive', 'Neutral', 'Negative'],
-        'values': [positive / total * 100 if total else 0, neutral / total * 100 if total else 0, negative / total * 100 if total else 0]
+        'values': [positive / total * 100 if total else 0, 
+                  neutral / total * 100 if total else 0, 
+                  negative / total * 100 if total else 0]
     }
+
+# ------------- ML Utilities for Buy/Not Buy -------------
+
+def prepare_ml_data(df):
+    """Simplified feature engineering with consistent features"""
+    if df.empty:
+        return None, None, None, None
+    
+    df_ml = df.dropna(subset=['Rating', 'Quantity_Sold']).copy()
+    if len(df_ml) < 10:  # Need minimum samples
+        return None, None, None, None
+    
+    # Target variable: Buy if rating >= 4
+    df_ml['Buy'] = (df_ml['Rating'] >= 4).astype(int)
+    
+    # Use only basic features for consistency
+    feature_cols = ['Rating', 'Quantity_Sold']
+    
+    X = df_ml[feature_cols]
+    y = df_ml['Buy']
+    
+    return train_test_split(X, y, test_size=0.3, random_state=42)
+
+def train_buy_classifier():
+    """Train the buy/not buy classifier with basic features"""
+    global clf, df
+    
+    if df.empty:
+        logger.warning("No data to train ML model.")
+        return False
+    
+    try:
+        result = prepare_ml_data(df)
+        if result[0] is None:  # Not enough data
+            logger.warning("Not enough data to train ML model.")
+            return False
+        
+        X_train, X_test, y_train, y_test = result
+        
+        if len(X_train) < 2:
+            logger.warning("Insufficient training samples.")
+            return False
+        
+        # Train RandomForest with basic parameters
+        clf = RandomForestClassifier(
+            n_estimators=50,
+            random_state=42,
+            max_depth=8
+        )
+        
+        clf.fit(X_train, y_train)
+        y_pred = clf.predict(X_test)
+        acc = accuracy_score(y_test, y_pred)
+        
+        logger.info(f"[ML] Buy Classifier trained with accuracy: {acc:.2f}")
+        
+        # Save model
+        joblib.dump(clf, "buy_classifier.joblib")
+        logger.info("[ML] Model saved to buy_classifier.joblib")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error training ML model: {e}")
+        return False
+
+def load_or_train_classifier():
+    """Load existing model or train new one"""
+    global clf
+    
+    try:
+        # Try loading existing model first
+        clf = joblib.load("buy_classifier.joblib")
+        logger.info("[ML] Loaded existing buy classifier")
+        return True
+    except FileNotFoundError:
+        # Train new model if none exists
+        success = train_buy_classifier()
+        if success:
+            logger.info("[ML] Trained new buy classifier")
+        return success
+    except Exception as e:
+        logger.error(f"Error loading ML model: {e}")
+        # Fallback to training new model
+        return train_buy_classifier()
+
+def get_buy_prediction(sub, user_budget=None, user_priority='balanced'):
+    """Generate buy prediction with consistent features"""
+    global clf, df
+    
+    if clf is None or sub.empty:
+        return None, 'Model not available'
+    
+    try:
+        # Calculate only basic features
+        avg_rating = sub['Rating'].mean()
+        total_qty = sub['Quantity_Sold'].sum()
+        
+        # Validate features
+        if pd.isna(avg_rating) or pd.isna(total_qty):
+            return None, 'Insufficient data for prediction'
+        
+        # Prepare features for prediction (matching training features)
+        X_pred = pd.DataFrame({
+            'Rating': [avg_rating],
+            'Quantity_Sold': [total_qty]
+        })
+        
+        # Get base prediction
+        buy_prob = clf.predict_proba(X_pred)[0][1]
+        
+        # Apply personalization adjustments
+        if user_priority == 'rating' and avg_rating >= 4.0:
+            buy_prob = min(1.0, buy_prob + 0.1)  # Boost for high ratings
+        elif user_priority == 'value' and user_budget and 'Unit_Price' in sub.columns:
+            avg_price = sub['Unit_Price'].mean()
+            if avg_price < user_budget:
+                buy_prob = min(1.0, buy_prob + 0.15)  # Boost for good value
+        elif user_priority == 'popularity' and total_qty > df['Quantity_Sold'].quantile(0.75):
+            buy_prob = min(1.0, buy_prob + 0.1)  # Boost for popular items
+        
+        # Generate recommendation
+        buy_rec = 'Buy' if buy_prob > 0.5 else 'Do not buy'
+        
+        # Add budget consideration
+        if user_budget and 'Unit_Price' in sub.columns:
+            avg_price = sub['Unit_Price'].mean()
+            if avg_price > user_budget:
+                buy_rec += f' (may exceed budget of ${user_budget:.2f})'
+        
+        return buy_prob, buy_rec
+        
+    except Exception as e:
+        logger.error(f"Error in buy prediction: {e}")
+        return None, 'Prediction failed'
+
+# Initialize ML model
+load_or_train_classifier()
 
 # ------------- Forecast Models -------------
 
@@ -298,10 +457,15 @@ def get_models_for_product(brand, product):
 
 @app.route('/api/forecast', methods=['POST'])
 def forecast_api():
-    global df
+    global df, data_version
     try:
-        # Reload latest data each time
+        # Check if data needs reloading
+        old_version = data_version
         df = load_sales_data()
+        
+        # Retrain model if data changed
+        if data_version != old_version:
+            load_or_train_classifier()
 
         data = request.get_json() or {}
         for k in ['brand', 'product', 'model', 'start_date', 'end_date']:
@@ -431,19 +595,28 @@ def model_comparison():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ------------- New Route for Ratings Graphs -------------
+# ------------- Enhanced Route for Ratings Graphs -------------
 
 @app.route('/api/ratings', methods=['POST'])
 def ratings_api():
-    global df
+    global df, clf, data_version
     try:
-        # Reload latest data each time
+        # Check if data needs reloading
+        old_version = data_version
         df = load_sales_data()
+        
+        # Retrain model if data changed
+        if data_version != old_version:
+            load_or_train_classifier()
 
         data = request.get_json() or {}
         for k in ['brand', 'product', 'model', 'start_date', 'end_date']:
             if not data.get(k):
                 return jsonify({'error': f'Missing field: {k}'}), 400
+
+        # Get personalization inputs
+        user_budget = float(data.get('budget', 0)) if data.get('budget') else None
+        user_priority = data.get('priority', 'balanced')
 
         brand = str(data['brand'])
         product = str(data['product'])
@@ -472,10 +645,97 @@ def ratings_api():
             'rating_heatmap': rating_heatmap_by_category(sub),
             'sentiment_breakdown': sentiment_breakdown(sub)
         }
+
+        # Get buy prediction
+        buy_prob, buy_rec = get_buy_prediction(sub, user_budget, user_priority)
+        
+        if buy_prob is not None:
+            response['buy_probability'] = float(buy_prob)
+            response['buy_recommendation'] = buy_rec
+        else:
+            response['buy_recommendation'] = buy_rec
+
         return jsonify(response)
     except Exception as e:
         logger.exception("ratings_api error")
         return jsonify({'error': str(e)}), 500
+
+# ------------- New Route for Combined Recommendation -------------
+
+@app.route('/api/recommendation', methods=['POST'])
+def recommendation_api():
+    global df, clf, data_version
+    try:
+        # Check if data needs reloading
+        old_version = data_version
+        df = load_sales_data()
+        
+        # Retrain model if data changed
+        if data_version != old_version:
+            load_or_train_classifier()
+
+        data = request.get_json() or {}
+        for k in ['brand', 'product', 'model', 'start_date', 'end_date']:
+            if not data.get(k):
+                return jsonify({'error': f'Missing field: {k}'}), 400
+
+        # Get personalization inputs
+        user_budget = float(data.get('budget', 0)) if data.get('budget') else None
+        user_priority = data.get('priority', 'balanced')
+
+        brand = str(data['brand'])
+        product = str(data['product'])
+        model_name = str(data['model'])
+        start_date = pd.to_datetime(data['start_date'], errors='coerce')
+        end_date = pd.to_datetime(data['end_date'], errors='coerce')
+        if pd.isna(start_date) or pd.isna(end_date):
+            return jsonify({'error': 'Invalid dates'}), 400
+
+        sub = df[
+            (df['Brand'].astype(str) == brand) &
+            (df['Product_Name'].astype(str) == product) &
+            (df['Model'].astype(str) == model_name) &
+            (df['timestamp'] >= start_date) &
+            (df['timestamp'] <= end_date)
+        ].copy()
+
+        if sub.empty:
+            return jsonify({'error': 'No data found for the selected criteria.'}), 400
+
+        # Forecast sales
+        monthly = aggregate_monthly(sub).set_index('timestamp').asfreq('MS', fill_value=0).reset_index()
+        steps = 6
+        pred, chosen_model, conf, _ = select_best_model(monthly[['timestamp', 'Quantity_Sold']], steps=steps)
+
+        # Get buy prediction
+        buy_prob, buy_rec = get_buy_prediction(sub, user_budget, user_priority)
+
+        response = {
+            'forecast': {
+                'labels': pd.date_range(monthly['timestamp'].iloc[-1] + pd.offsets.MonthBegin(1), periods=steps, freq='MS').strftime('%Y-%m').tolist(),
+                'values': [int(round(x)) for x in pred]
+            },
+            'buy_recommendation': buy_rec,
+            'buy_probability': float(buy_prob) if buy_prob is not None else None,
+            'forecast_model_used': chosen_model
+        }
+        return jsonify(response)
+
+    except Exception as e:
+        logger.exception("recommendation_api error")
+        return jsonify({'error': str(e)}), 500
+
+# ---------------- Health Check Route ----------------
+
+@app.route('/api/health')
+def health_check():
+    """Health check endpoint"""
+    return jsonify({
+        'status': 'healthy',
+        'ml_model_loaded': clf is not None,
+        'data_points': len(df),
+        'brands_available': len(brands)
+    })
 
 # ---------------- Main ----------------
 

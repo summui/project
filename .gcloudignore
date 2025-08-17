@@ -1,0 +1,27 @@
+# .gcloudignore
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local environment
+.env
+venv/
+env/
+*.log
+
+# IDE/editor files
+.vscode/
+.idea/
+
+# Git and version control
+.git/
+.gitignore
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Tests and docs (if not needed)
+tests/
+docs/

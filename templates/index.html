@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ForecastFutureBuy - Sales Prediction</title>
+  <title>ForecastFutureBuy - Smart Purchase Decision Platform</title>
 
   <!-- Chart.js core -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -94,7 +94,7 @@
       margin-bottom: 4px;
     }
     
-    select, input[type="month"] { 
+    select, input[type="month"], input[type="number"] { 
       padding: 12px 16px; 
       border: 2px solid #e2e8f0; 
       border-radius: 12px; 
@@ -104,7 +104,7 @@
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
     
-    select:focus, input[type="month"]:focus {
+    select:focus, input[type="month"]:focus, input[type="number"]:focus {
       border-color: #6366f1;
       box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
@@ -162,6 +162,81 @@
       background: #f0fdf4; 
       color: #16a34a; 
       border: 1px solid #bbf7d0; 
+    }
+
+    /* Enhanced Buy Recommendation Styles */
+    .buy-recommendation {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 16px 0;
+      padding: 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1.1rem;
+    }
+
+    .buy-recommendation.buy {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+      border: 2px solid #047857;
+    }
+
+    .buy-recommendation.not-buy {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      color: white;
+      border: 2px solid #b91c1c;
+    }
+
+    .buy-recommendation.pending {
+      background: #f3f4f6;
+      color: #6b7280;
+      border: 2px solid #d1d5db;
+    }
+
+    .buy-probability {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .probability-bar {
+      width: 100px;
+      height: 8px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .probability-fill {
+      height: 100%;
+      background: rgba(255,255,255,0.9);
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    /* Personalization Section */
+    .personalization-section {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border: 1px solid #bae6fd;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .personalization-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0369a1;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .personalization-title::before {
+      content: '🎯';
+      font-size: 1.2rem;
     }
     
     /* Tab Navigation Styles */
@@ -276,7 +351,7 @@
       margin: 32px 0 20px; 
       color: #1e293b; 
       padding: 16px 0 12px; 
-      border-bottom: 3px solid #6366f1; 
+      border-bottom: 3px solid #6366f1;
       position: relative;
       text-align: center;
     }
@@ -305,7 +380,7 @@
       margin-bottom: 12px;
       color: #1e293b;
     }
-    
+
     /* Enhanced responsive breakpoints */
     @media (max-width: 768px) {
       .container { padding: 0 12px; }
@@ -324,6 +399,12 @@
         min-width: 100px;
         padding: 12px 16px;
         font-size: 0.875rem;
+      }
+
+      .buy-recommendation {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
       }
     }
     
@@ -381,7 +462,7 @@
   <div class="container">
     <div class="header card">
       <h1>ForecastFutureBuy</h1>
-      <div class="subtle">Advanced Sales Prediction & Revenue Analytics</div>
+      <div class="subtle">Smart Purchase Decision Platform - Analytics & AI-Powered Buy Recommendations</div>
     </div>
 
     {% if min_date and max_date %}
@@ -422,7 +503,29 @@
           <input type="month" id="end-date" required {% if min_date and max_date %} min="{{ min_date }}" max="{{ max_date }}" {% endif %} />
         </div>
       </div>
-      <button id="predict-btn">Generate Forecast</button>
+      
+      <!-- Personalization Section -->
+      <div class="personalization-section">
+        <div class="personalization-title">Personalize Your Analysis</div>
+        <div class="grid form-grid">
+          <div class="input-group">
+            <label for="budget">Budget (Optional)</label>
+            <input type="number" id="budget" placeholder="Enter your budget limit" min="0" step="0.01" />
+            <small class="subtle">Help us tailor recommendations to your budget</small>
+          </div>
+          <div class="input-group">
+            <label for="priority">Priority Factor</label>
+            <select id="priority">
+              <option value="balanced">Balanced (Rating + Sales)</option>
+              <option value="rating">High Rating Priority</option>
+              <option value="value">Best Value Priority</option>
+              <option value="popularity">Popularity Priority</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button id="predict-btn">Generate Smart Analysis</button>
       <div class="messages">
         <div id="err" class="msg error"></div>
         <div id="ok" class="msg success"></div>
@@ -430,9 +533,21 @@
     </div>
 
     <div id="results" class="card" style="display:none;">
+      <!-- Enhanced Overview with Buy Recommendation -->
       <div class="overview-card">
-        <div class="overview-title">Forecast Overview</div>
+        <div class="overview-title">Smart Purchase Analysis</div>
         <div id="rec-text" class="subtle">Loading forecast results...</div>
+        
+        <!-- Buy Recommendation Display -->
+        <div id="buy-recommendation" class="buy-recommendation pending">
+          <span id="buy-message">Analyzing product data for purchase recommendation...</span>
+          <div class="buy-probability">
+            <span id="buy-probability-text">--</span>
+            <div class="probability-bar">
+              <div id="probability-fill" class="probability-fill" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Tab Navigation -->
@@ -440,7 +555,7 @@
         <button class="tab-button active" data-tab="sales-forecasting">Sales Forecasting</button>
         <button class="tab-button" data-tab="revenue-analytics">Revenue Analytics</button>
         <button class="tab-button" data-tab="performance">Performance Analysis</button>
-        <button class="tab-button" data-tab="ratings">Customer Ratings</button>
+        <button class="tab-button" data-tab="ratings">Customer Ratings & Buy AI</button>
       </div>
 
       <!-- Sales Forecasting Tab -->
@@ -556,9 +671,18 @@
         </div>
       </div>
 
-      <!-- Customer Ratings Tab -->
+      <!-- Enhanced Customer Ratings Tab -->
       <div id="ratings" class="tab-content">
-        <div class="section-title">Customer Ratings</div>
+        <div class="section-title">Customer Ratings & AI Purchase Recommendation</div>
+        
+        <!-- AI Recommendation Summary -->
+        <div class="card" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-color: #f59e0b;">
+          <div class="chart-title" style="color: #92400e;">🤖 AI Purchase Recommendation Summary</div>
+          <div id="ai-summary" class="subtle" style="color: #78350f; font-size: 1.1rem; line-height: 1.8;">
+            Analyzing customer ratings, sales performance, and market trends to generate personalized recommendation...
+          </div>
+        </div>
+
         <div class="grid charts-2">
           <div class="card">
             <div class="chart-title">Rating Trends Over Time</div>
@@ -586,6 +710,14 @@
               </div>
             </div>
           </div>
+          <div class="card">
+            <div class="chart-title">Sentiment Analysis</div>
+            <div class="chart-box">
+              <div class="chart-container">
+                <canvas id="sentimentChart"></canvas>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -609,11 +741,18 @@
     const modelEl = document.getElementById('model');
     const startEl = document.getElementById('start-date');
     const endEl = document.getElementById('end-date');
+    const budgetEl = document.getElementById('budget');
+    const priorityEl = document.getElementById('priority');
     const predictBtn = document.getElementById('predict-btn');
     const errEl = document.getElementById('err');
     const okEl = document.getElementById('ok');
     const resultsEl = document.getElementById('results');
     const recEl = document.getElementById('rec-text');
+    const buyRecommendationEl = document.getElementById('buy-recommendation');
+    const buyMessageEl = document.getElementById('buy-message');
+    const buyProbabilityTextEl = document.getElementById('buy-probability-text');
+    const probabilityFillEl = document.getElementById('probability-fill');
+    const aiSummaryEl = document.getElementById('ai-summary');
 
     const MIN_DATE = '{{ min_date }}';
     const MAX_DATE = '{{ max_date }}';
@@ -621,7 +760,7 @@
     // Charts
     let histChart=null, fcChart=null, seasChart=null, revChart=null, 
         yoyChart=null, priceSalesChart=null,
-        ratingTrendChart=null, ratingDistChart=null, ratingsSalesChart=null,
+        ratingTrendChart=null, ratingDistChart=null, ratingsSalesChart=null, sentimentChart=null,
         revenueTrendChart=null, revenueGrowthChart=null, revenueQuantityChart=null,
         cumulativeRevenueChart=null, avgRevenueChart=null;
 
@@ -693,6 +832,85 @@
       
       return { labels: processedLabels, values: processedValues };
     };
+
+    // Update Buy Recommendation Display
+// Update Buy Recommendation Display
+function updateBuyRecommendation(ratingsData) {
+  if (!ratingsData) return;
+
+  const buyRec = ratingsData.buy_recommendation || 'Model not trained';
+  const buyProb = ratingsData.buy_probability || 0;
+
+  // Update recommendation message
+  if (buyRec === 'Buy') {
+    buyRecommendationEl.className = 'buy-recommendation buy';
+    buyMessageEl.textContent = '✅ Recommended Purchase';
+  } else if (buyRec.includes('Do not buy') || buyRec.startsWith('Do not buy')) {
+    buyRecommendationEl.className = 'buy-recommendation not-buy';
+    buyMessageEl.textContent = '❌ Not Recommended';
+  } else {
+    buyRecommendationEl.className = 'buy-recommendation pending';
+    buyMessageEl.textContent = '⚠️ ' + buyRec;
+  }
+
+  // Update probability display
+  if (typeof buyProb === 'number' && buyProb > 0) {
+    buyProbabilityTextEl.textContent = `${(buyProb * 100).toFixed(1)}%`;
+    probabilityFillEl.style.width = `${buyProb * 100}%`;
+  } else {
+    buyProbabilityTextEl.textContent = '--';
+    probabilityFillEl.style.width = '0%';
+  }
+
+  // Update AI summary
+  generateAISummary(ratingsData);
+}
+
+    // Generate AI Summary
+// Generate AI Summary
+function generateAISummary(ratingsData) {
+  const buyRec = ratingsData.buy_recommendation || 'Model not trained';
+  const buyProb = ratingsData.buy_probability || 0;
+  const sentimentData = ratingsData.sentiment_breakdown;
+  
+  let summary = `Based on our AI analysis of customer ratings and sales performance: `;
+  
+  if (buyRec === 'Buy') {
+    summary += `This product shows strong positive indicators with a ${(buyProb * 100).toFixed(1)}% confidence score. `;
+    
+    // Fixed: Check if sentimentData exists and has valid values
+    if (sentimentData && sentimentData.values && Array.isArray(sentimentData.values) && sentimentData.values.length > 0) {
+      const positivePercent = sentimentData.values[0];
+      if (typeof positivePercent === 'number' && positivePercent > 60) {
+        summary += `Customer sentiment is highly positive (${positivePercent.toFixed(1)}% positive reviews), `;
+      }
+    }
+    summary += `making it a recommended purchase for your consideration.`;
+    
+  } else if (buyRec.includes('Do not buy')) {
+    summary += `Our analysis suggests caution with a ${(buyProb * 100).toFixed(1)}% confidence score. `;
+    
+    // Fixed: Check if sentimentData exists and has valid values
+    if (sentimentData && sentimentData.values && Array.isArray(sentimentData.values) && sentimentData.values.length > 2) {
+      const negativePercent = sentimentData.values[2];
+      if (typeof negativePercent === 'number' && negativePercent > 30) {
+        summary += `Higher negative sentiment detected (${negativePercent.toFixed(1)}% negative reviews), `;
+      }
+    }
+    summary += `indicating potential concerns with this product.`;
+    
+  } else {
+    summary += `Insufficient data for reliable AI prediction. Consider gathering more product information before making a purchase decision.`;
+  }
+
+  // Add budget consideration if provided
+  const budget = budgetEl.value;
+  if (budget && buyRec.includes('budget')) {
+    summary += ` Note: This recommendation considers your specified budget of $${budget}.`;
+  }
+
+  aiSummaryEl.textContent = summary;
+}
 
     // Defaults for dates
     (function setDefaults(){
@@ -908,7 +1126,7 @@
       }catch(e){ showError(e.message); modelEl.innerHTML='<option value="">Error loading models</option>'; modelEl.disabled=true; }
     });
 
-    // Predict function
+    // Enhanced Predict function with personalization
     predictBtn.addEventListener('click', async function(){
       clearMsgs();
       const b=brandEl.value, p=productEl.value, m=modelEl.value, s=startEl.value, e=endEl.value;
@@ -916,19 +1134,42 @@
       if(!validateDates()) return;
       
       predictBtn.disabled=true;
-      predictBtn.textContent='Generating Forecast...';
+      predictBtn.textContent='Generating AI Analysis...';
+      
+      // Reset buy recommendation to pending
+      buyRecommendationEl.className = 'buy-recommendation pending';
+      buyMessageEl.textContent = 'Analyzing product data...';
+      buyProbabilityTextEl.textContent = '--';
+      probabilityFillEl.style.width = '0%';
       
       try{
+        // Prepare request data with personalization
+        const requestData = {
+          brand: b,
+          product: p,
+          model: m,
+          start_date: s + '-01',
+          end_date: e + '-01'
+        };
+
+        // Add personalization parameters if provided
+        if (budgetEl.value) {
+          requestData.budget = parseFloat(budgetEl.value);
+        }
+        if (priorityEl.value) {
+          requestData.priority = priorityEl.value;
+        }
+
         const [forecastResponse, ratingsResponse] = await Promise.allSettled([
           fetch('/api/forecast', {
             method:'POST', 
             headers:{'Content-Type':'application/json','Accept':'application/json'},
-            body:JSON.stringify({brand:b,product:p,model:m,start_date:s+'-01',end_date:e+'-01'})
+            body:JSON.stringify(requestData)
           }),
           fetch('/api/ratings', {
             method:'POST', 
             headers:{'Content-Type':'application/json','Accept':'application/json'},
-            body:JSON.stringify({brand:b,product:p,model:m,start_date:s+'-01',end_date:e+'-01'})
+            body:JSON.stringify(requestData)
           })
         ]);
 
@@ -943,22 +1184,27 @@
         if (!data) throw new Error('Failed to get forecast data');
 
         renderAll(data, ratingsData);
+        updateBuyRecommendation(ratingsData);
         resultsEl.style.display='block';
-        showOk('All analytics loaded successfully. Use tabs to navigate between different analyses.');
+        showOk('AI analysis completed! Smart purchase recommendation generated based on data and your preferences.');
         
         setTimeout(() => {
           resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);
         
       }catch(err){ 
-        showError(err.message || 'An error occurred while generating the forecast.'); 
+        showError(err.message || 'An error occurred while generating the AI analysis.'); 
+        // Reset to pending state
+        buyRecommendationEl.className = 'buy-recommendation pending';
+        buyMessageEl.textContent = 'Analysis failed - please try again';
       }
       finally{ 
         predictBtn.disabled=false; 
-        predictBtn.textContent='Generate Forecast';
+        predictBtn.textContent='Generate Smart Analysis';
       }
     });
 
+    // Enhanced renderAll function
     function renderAll(data, ratingsData){
       recEl.textContent = data?.recommendation?.message || 'Forecast analysis completed successfully.';
       
@@ -984,6 +1230,7 @@
         renderRatingTrend(ratingsData);
         renderRatingDistribution(ratingsData);
         renderRatingsVsSales(ratingsData);
+        renderSentimentChart(ratingsData);
       } else {
         renderEmptyRatingCharts();
       }
@@ -1768,6 +2015,47 @@
       });
     }
 
+    function renderSentimentChart(ratingsData){
+      const ctx=document.getElementById('sentimentChart').getContext('2d');
+      if(sentimentChart) sentimentChart.destroy();
+      
+      const sentimentData = ratingsData?.sentiment_breakdown || { labels: [], values: [] };
+
+      if (!sentimentData.labels.length) {
+        sentimentChart = new Chart(ctx, { 
+          type: 'doughnut', 
+          data: { labels: [], datasets: [] }, 
+          options: getCommonChartOptions('Sentiment Analysis')
+        });
+        return;
+      }
+
+      const options = getCommonChartOptions('Customer Sentiment Analysis');
+      options.plugins.legend.position = 'bottom';
+
+      sentimentChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: sentimentData.labels,
+          datasets: [{
+            data: sentimentData.values,
+            backgroundColor: [
+              colors.success + 'CC',
+              '#eab308CC',
+              colors.danger + 'CC'
+            ],
+            borderColor: [
+              colors.success,
+              '#eab308',
+              colors.danger
+            ],
+            borderWidth: 2
+          }]
+        },
+        options: options
+      });
+    }
+
     function renderEmptyRatingCharts(){
       const emptyOptions = { 
         ...getCommonChartOptions('No Data Available'),
@@ -1781,11 +2069,14 @@
       if(ratingTrendChart) ratingTrendChart.destroy();
       if(ratingDistChart) ratingDistChart.destroy();
       if(ratingsSalesChart) ratingsSalesChart.destroy();
+      if(sentimentChart) sentimentChart.destroy();
       
       ratingTrendChart = new Chart(document.getElementById('ratingTrendChart'), { type: 'line', data: emptyData, options: emptyOptions });
       ratingDistChart = new Chart(document.getElementById('ratingDistChart'), { type: 'bar', data: emptyData, options: emptyOptions });
       ratingsSalesChart = new Chart(document.getElementById('ratingsSalesChart'), { type: 'scatter', data: emptyData, options: emptyOptions });
+      sentimentChart = new Chart(document.getElementById('sentimentChart'), { type: 'doughnut', data: emptyData, options: emptyOptions });
     }
+
   </script>
 </body>
 </html>
