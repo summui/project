@@ -1,8 +1,8 @@
-# 📚 **ForecastFutureBuy - Smart Purchase Decision Platform**
+# 📚 **BuyWise - Smart Purchase Decision Platform**
 
 ## 🎯 **Overview**
 
-**ForecastFutureBuy** is an AI-powered Smart Purchase Decision Platform that helps users make informed buying decisions by analyzing product performance, sales trends, customer ratings, and market data. The platform combines advanced forecasting algorithms with machine learning to provide personalized "buy or not buy" recommendations.
+**BuyWise** is an AI-powered Smart Purchase Decision Platform that helps users make informed buying decisions by analyzing product performance, sales trends, customer ratings, and market data. The platform combines advanced forecasting algorithms with machine learning to provide personalized "buy or not buy" recommendations.
 
 ### **Core Functionality**
 
