@@ -41,8 +41,6 @@ client = MongoClient(MONGODB_URI)
 db = client[DB_NAME]
 collection = db[COLLECTION_NAME]
 
-app = Flask(__name__)
-
 # Global variables
 df = pd.DataFrame()
 clf = None
@@ -178,8 +176,8 @@ def sentiment_breakdown(df_sub):
     return {
         'labels': ['Positive', 'Neutral', 'Negative'],
         'values': [positive / total * 100 if total else 0, 
-                  neutral / total * 100 if total else 0, 
-                  negative / total * 100 if total else 0]
+                   neutral / total * 100 if total else 0, 
+                   negative / total * 100 if total else 0]
     }
 
 # ------------- ML Utilities for Buy/Not Buy -------------
@@ -432,11 +430,9 @@ def select_best_model(monthly_sales, steps=6):
 
 # ---------------- Routes ----------------
 
-@app.route('/')
 def index():
     return render_template('index.html', brands=brands, min_date=min_date_str, max_date=max_date_str)
 
-@app.route('/api/products/<brand>')
 def get_products_for_brand(brand):
     if df.empty:
         return jsonify([])
@@ -444,7 +440,6 @@ def get_products_for_brand(brand):
     products = subset['Product_Name'].dropna().astype(str).unique().tolist()
     return jsonify(sorted(products))
 
-@app.route('/api/models/<brand>/<product>')
 def get_models_for_product(brand, product):
     if df.empty:
         return jsonify([])
@@ -455,7 +450,6 @@ def get_models_for_product(brand, product):
     models = subset['Model'].dropna().astype(str).unique().tolist()
     return jsonify(sorted(models))
 
-@app.route('/api/forecast', methods=['POST'])
 def forecast_api():
     global df, data_version
     try:
@@ -542,7 +536,6 @@ def forecast_api():
         logger.exception("forecast_api error")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/model-comparison', methods=['POST'])
 def model_comparison():
     try:
         data = request.get_json() or {}
@@ -597,7 +590,6 @@ def model_comparison():
 
 # ------------- Enhanced Route for Ratings Graphs -------------
 
-@app.route('/api/ratings', methods=['POST'])
 def ratings_api():
     global df, clf, data_version
     try:
@@ -662,7 +654,6 @@ def ratings_api():
 
 # ------------- New Route for Combined Recommendation -------------
 
-@app.route('/api/recommendation', methods=['POST'])
 def recommendation_api():
     global df, clf, data_version
     try:
@@ -727,7 +718,6 @@ def recommendation_api():
 
 # ---------------- Health Check Route ----------------
 
-@app.route('/api/health')
 def health_check():
     """Health check endpoint"""
     return jsonify({
@@ -737,7 +727,30 @@ def health_check():
         'brands_available': len(brands)
     })
 
+# ---------------- Application Factory ----------------
+
+def create_app():
+    app = Flask(__name__)
+    
+    # Add any app configurations here
+    # For example:
+    # app.config['DEBUG'] = True
+    # app.config.from_object('config')  # If you have a config file
+
+    # Register routes using add_url_rule (since routes are defined as functions)
+    app.add_url_rule('/', view_func=index)
+    app.add_url_rule('/api/products/<brand>', view_func=get_products_for_brand)
+    app.add_url_rule('/api/models/<brand>/<product>', view_func=get_models_for_product)
+    app.add_url_rule('/api/forecast', view_func=forecast_api, methods=['POST'])
+    app.add_url_rule('/api/model-comparison', view_func=model_comparison, methods=['POST'])
+    app.add_url_rule('/api/ratings', view_func=ratings_api, methods=['POST'])
+    app.add_url_rule('/api/recommendation', view_func=recommendation_api, methods=['POST'])
+    app.add_url_rule('/api/health', view_func=health_check)
+    
+    return app
+
 # ---------------- Main ----------------
 
 if __name__ == '__main__':
+    app = create_app()
     app.run(debug=True)

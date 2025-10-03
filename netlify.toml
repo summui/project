@@ -1,0 +1,4 @@
+[build]
+command = "pip install -r requirements.txt && python build.py"  # Runs deps install + your script
+publish = "build"  # Output dir for static files
+environment = { PYTHON_VERSION = "3.12" }  # For compatibility
