@@ -1,4 +1,4 @@
 [build]
-  command = "pip install --no-build-isolation -r requirements.txt && python build.py"
+  command = "pip install -r requirements_numpy.txt && pip install -r requirements_other.txt && python build.py"
   publish = "build"
-  environment = { PYTHON_VERSION = "3.12" }
+  environment = { PYTHON_VERSION = "3.12" }  # For compatibility, as discussed
