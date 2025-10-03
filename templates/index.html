@@ -336,10 +336,17 @@ button:disabled {
 .chart-title {
   font-size: 1.125rem;
   font-weight: 700;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   color: #2e0854;
   padding-bottom: 8px;
   border-bottom: 2px solid #b39ddb;
+}
+
+.chart-desc {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin-bottom: 16px;
+  font-style: italic;
 }
 
 .subtle {
@@ -567,6 +574,7 @@ button:disabled {
         <div class="grid charts-2">
           <div class="card">
             <div class="chart-title">Historical Sales Analysis</div>
+            <small class="chart-desc">Displays past sales quantities over time, including moving averages to highlight trends and patterns in historical data.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="historicalChart"></canvas>
@@ -575,6 +583,7 @@ button:disabled {
           </div>
           <div class="card">
             <div class="chart-title">Future Sales Forecast</div>
+            <small class="chart-desc">Predicts upcoming sales quantities with confidence intervals, helping anticipate future demand based on selected forecasting models.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="forecastChart"></canvas>
@@ -585,6 +594,7 @@ button:disabled {
         <div class="grid charts-2">
           <div class="card">
             <div class="chart-title">Seasonal Patterns</div>
+            <small class="chart-desc">Heatmap showing sales variations by month and year, revealing seasonal trends and peak periods for better planning.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="seasonalityChart"></canvas>
@@ -593,6 +603,7 @@ button:disabled {
           </div>
           <div class="card">
             <div class="chart-title">Revenue Overview</div>
+            <small class="chart-desc">Compares historical and forecasted revenue, providing insights into past performance and future revenue projections.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="revenueChart"></canvas>
@@ -608,6 +619,7 @@ button:disabled {
         <div class="grid charts-3">
           <div class="card">
             <div class="chart-title">Revenue Trend Analysis</div>
+            <small class="chart-desc">Tracks revenue changes over time with moving averages, identifying growth patterns and fluctuations.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="revenueTrendChart"></canvas>
@@ -616,6 +628,7 @@ button:disabled {
           </div>
           <div class="card">
             <div class="chart-title">Monthly Revenue Growth</div>
+            <small class="chart-desc">Shows month-over-month percentage changes in revenue, highlighting periods of growth or decline.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="revenueGrowthChart"></canvas>
@@ -624,6 +637,7 @@ button:disabled {
           </div>
           <div class="card">
             <div class="chart-title">Revenue vs. Quantity</div>
+            <small class="chart-desc">Scatter plot correlating revenue with quantities sold, revealing relationships between sales volume and income.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="revenueQuantityChart"></canvas>
@@ -634,6 +648,7 @@ button:disabled {
         <div class="grid charts-2">
           <div class="card">
             <div class="chart-title">Cumulative Revenue</div>
+            <small class="chart-desc">Accumulates total revenue over time, showing overall financial progress and milestones.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="cumulativeRevenueChart"></canvas>
@@ -642,6 +657,7 @@ button:disabled {
           </div>
           <div class="card">
             <div class="chart-title">Average Revenue per Unit</div>
+            <small class="chart-desc">Calculates average revenue generated per unit sold, indicating pricing effectiveness and profitability per item.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="avgRevenueChart"></canvas>
@@ -657,6 +673,7 @@ button:disabled {
         <div class="grid charts-2">
           <div class="card">
             <div class="chart-title">Year-over-Year Growth</div>
+            <small class="chart-desc">Compares sales growth year-over-year, helping evaluate long-term performance improvements or declines.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="yoyChart"></canvas>
@@ -665,6 +682,7 @@ button:disabled {
           </div>
           <div class="card">
             <div class="chart-title">Price vs. Sales Correlation</div>
+            <small class="chart-desc">Scatter plot showing how unit prices relate to sales quantities, identifying optimal pricing strategies.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="priceSalesChart"></canvas>
@@ -689,6 +707,7 @@ button:disabled {
         <div class="grid charts-2">
           <div class="card">
             <div class="chart-title">Rating Trends Over Time</div>
+            <small class="chart-desc">Line chart tracking average customer ratings across periods, showing how perceptions evolve.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="ratingTrendChart"></canvas>
@@ -697,6 +716,7 @@ button:disabled {
           </div>
           <div class="card">
             <div class="chart-title">Rating Distribution</div>
+            <small class="chart-desc">Bar chart breaking down the frequency of ratings (e.g., 1-5 stars), highlighting overall satisfaction levels.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="ratingDistChart"></canvas>
@@ -707,6 +727,7 @@ button:disabled {
         <div class="grid charts-2">
           <div class="card">
             <div class="chart-title">Ratings vs. Sales Performance</div>
+            <small class="chart-desc">Scatter plot correlating average ratings with sales quantities, revealing if higher ratings drive more sales.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="ratingsSalesChart"></canvas>
@@ -715,6 +736,7 @@ button:disabled {
           </div>
           <div class="card">
             <div class="chart-title">Sentiment Analysis</div>
+            <small class="chart-desc">Doughnut chart categorizing ratings into positive, neutral, and negative sentiments for quick insight into customer opinions.</small>
             <div class="chart-box">
               <div class="chart-container">
                 <canvas id="sentimentChart"></canvas>
@@ -770,7 +792,6 @@ button:disabled {
     // Tab Management
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
-
     tabButtons.forEach(button => {
       button.addEventListener('click', () => {
         const targetTab = button.getAttribute('data-tab');
@@ -837,7 +858,6 @@ button:disabled {
     };
 
     // Update Buy Recommendation Display
-// Update Buy Recommendation Display
 function updateBuyRecommendation(ratingsData) {
   if (!ratingsData) return;
 
@@ -870,7 +890,6 @@ function updateBuyRecommendation(ratingsData) {
 }
 
     // Generate AI Summary
-// Generate AI Summary
 function generateAISummary(ratingsData) {
   const buyRec = ratingsData.buy_recommendation || 'Model not trained';
   const buyProb = ratingsData.buy_probability || 0;
